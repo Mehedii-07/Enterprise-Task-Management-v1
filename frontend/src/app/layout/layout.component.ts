@@ -1,0 +1,41 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { SidebarComponent } from './sidebar/sidebar.component';
+import { TopbarComponent } from './topbar/topbar.component';
+
+@Component({
+  selector: 'app-layout',
+  standalone: true,
+  imports: [CommonModule, RouterModule, SidebarComponent, TopbarComponent],
+  template: `
+    <div class="app-layout">
+      <app-sidebar></app-sidebar>
+      <div class="main-wrapper">
+        <app-topbar></app-topbar>
+        <main class="page-content">
+          <router-outlet></router-outlet>
+        </main>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-content {
+      margin-left: 260px;
+      padding: 32px;
+      flex: 1;
+    }
+  `]
+})
+export class LayoutComponent {}
