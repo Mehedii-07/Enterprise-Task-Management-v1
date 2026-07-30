@@ -30,23 +30,24 @@ An enterprise-grade, multi-tenant corporate productivity and management applicat
 ### Option A: Local Development
 
 #### 1. Backend Setup (FastAPI)
+The backend uses `uv` for lightning-fast dependency management.
+
 ```bash
 cd backend
 
-# Create & activate virtual environment
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
+# Create a virtual environment and sync dependencies
+uv venv
+uv pip install -r requirements.txt
 
-# Install dependencies
-pip install -r requirements.txt
+# On Windows, activate the virtual environment:
+.venv\Scripts\activate
+# On Linux/macOS:
+source .venv/bin/activate
 
 # Run FastAPI Server
-uvicorn app.main:app --reload --port 8005
+uvicorn app.main:app --reload --port 8000
 ```
-- API Interactive Swagger Specs: `http://localhost:8005/api/v1/docs`
+- API Interactive Swagger Specs: `http://localhost:8000/docs` (Note: The default FastAPI docs path is `/docs`)
 
 #### 2. Frontend Setup (Angular 20)
 ```bash
@@ -56,7 +57,7 @@ cd frontend
 npm install
 
 # Start Angular Dev Server
-npm start
+ng serve
 ```
 - Open workspace in browser: `http://localhost:4200`
 
