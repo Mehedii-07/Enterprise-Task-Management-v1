@@ -95,6 +95,7 @@ import { FormsModule } from '@angular/forms';
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Assigned Employee</th>
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Status</th>
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Overall Progress</th>
+                <th style="padding: 12px 16px; text-align: right; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Report</th>
               </tr>
             </thead>
             <tbody>
@@ -125,6 +126,13 @@ import { FormsModule } from '@angular/forms';
                       <div class="progress-bar-fill" [style.width.%]="p.progress_percentage || 0" style="height: 100%; background: var(--accent-primary); border-radius: 4px; transition: width 0.3s ease;"></div>
                     </div>
                   </div>
+                </td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); text-align: right;">
+                  <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" (click)="downloadReport(p.id, p.name)" [disabled]="isDownloading[p.id]">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">download</span>
+                    <span *ngIf="!isDownloading[p.id]">PDF</span>
+                    <span *ngIf="isDownloading[p.id]">Wait...</span>
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -240,6 +248,27 @@ export class CEODashboardComponent implements OnInit {
     this.api.patch('/projects/' + projectId + '/assign', { assigned_to_id: employeeId }).subscribe({
       next: () => {
         this.loadDashboard();
+      }
+    });
+  }
+
+  isDownloading: { [key: string]: boolean } = {};
+  downloadReport(projectId: string, projectName: string) {
+    this.isDownloading[projectId] = true;
+    this.api.downloadBlob(`/projects/${projectId}/export-pdf`).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Project_Report_${projectName.replace(/\s+/g, '_')}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.isDownloading[projectId] = false;
+      },
+      error: (err) => {
+        console.error('Failed to download PDF', err);
+        alert('Failed to download project report.');
+        this.isDownloading[projectId] = false;
       }
     });
   }

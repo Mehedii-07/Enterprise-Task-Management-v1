@@ -65,6 +65,7 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
                   <th>Phase</th>
                   <th>Project Progress</th>
                   <th>Milestones Checklist</th>
+                  <th style="text-align: right;">Report</th>
                 </tr>
               </thead>
               <tbody>
@@ -102,6 +103,13 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
                         <span [class.completed]="m.is_completed" style="font-size: 0.85rem;">{{ m.title }}</span>
                       </div>
                     </div>
+                  </td>
+                  <td style="text-align: right;">
+                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" (click)="downloadReport(p.id, p.name)" [disabled]="isDownloading[p.id]">
+                      <span class="material-symbols-outlined" style="font-size: 16px;">download</span>
+                      <span *ngIf="!isDownloading[p.id]">PDF</span>
+                      <span *ngIf="isDownloading[p.id]">Wait...</span>
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -338,5 +346,26 @@ export class EmployeeDashboardComponent implements OnInit {
         next: () => this.loadDashboard()
       });
     }
+  }
+
+  isDownloading: { [key: string]: boolean } = {};
+  downloadReport(projectId: string, projectName: string) {
+    this.isDownloading[projectId] = true;
+    this.api.downloadBlob(`/projects/${projectId}/export-pdf`).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Project_Report_${projectName.replace(/\s+/g, '_')}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.isDownloading[projectId] = false;
+      },
+      error: (err) => {
+        console.error('Failed to download PDF', err);
+        alert('Failed to download project report. You might not have permission.');
+        this.isDownloading[projectId] = false;
+      }
+    });
   }
 }

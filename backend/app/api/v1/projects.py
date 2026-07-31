@@ -8,6 +8,9 @@ from app.models.project import ProjectStatus, ProjectPriority
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectMilestoneCreate, ProjectMilestoneResponse, ProjectAssignRequest, MilestoneToggleRequest
 from app.schemas.common import MessageResponse
 from app.services.project_service import ProjectService
+from app.services.pdf_service import PdfService
+from fastapi.responses import StreamingResponse
+from fastapi import HTTPException
 from app.api.v1.websockets import manager
 import asyncio
 
@@ -113,3 +116,29 @@ def toggle_milestone(
     except Exception as e:
         print(f"WS error: {e}")
     return milestone
+
+@router.get("/{project_id}/export-pdf")
+def export_project_pdf(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    project = ProjectService.get_project_by_id(db, project_id, current_user)
+    
+    # Check authorization based on role
+    role = current_user.role.name if current_user.role else ""
+    if role not in ["CEO", "ADMIN"]:
+        if project.assigned_to_id != current_user.id:
+            raise HTTPException(status_code=403, detail="You do not have permission to export this project's report.")
+            
+    pdf_buffer = PdfService.generate_project_report(project)
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename="Project_Report_{project_id}.pdf"'
+    }
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type='application/pdf',
+        headers=headers
+    )
