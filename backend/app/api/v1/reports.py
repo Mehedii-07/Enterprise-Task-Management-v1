@@ -76,3 +76,17 @@ def export_projects_progress_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=projects_progress_report.xlsx"}
     )
+
+
+@router.get("/projects/task-breakdown/excel")
+def export_task_breakdown_excel(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated)
+):
+    data = ReportService.generate_project_task_breakdown_data(db, current_user)
+    excel_content = ReportService.generate_excel_report(data)
+    return Response(
+        content=excel_content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=project_task_breakdown.xlsx"}
+    )

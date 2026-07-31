@@ -282,7 +282,7 @@ export class EmployeeDashboardComponent implements OnInit {
     this.loadDashboard();
     
     this.ws.messages$.subscribe((msg: WsMessage) => {
-      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_UPDATED' || msg.event === 'PROJECT_ASSIGNED' || msg.event === 'MILESTONE_TOGGLED') {
+      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_UPDATED' || msg.event === 'PROJECT_ASSIGNED' || msg.event === 'MILESTONE_TOGGLED' || msg.event === 'PROJECT_DELETED') {
         this.loadDashboard();
       }
     });
@@ -366,6 +366,31 @@ export class EmployeeDashboardComponent implements OnInit {
         alert('Failed to download project report. You might not have permission.');
         this.isDownloading[projectId] = false;
       }
+    });
+  }
+
+  addSubtask(taskId: string, inputElement: HTMLInputElement) {
+    const title = inputElement.value.trim();
+    if (!title) return;
+    this.api.post(`/tasks/${taskId}/subtasks`, { title: title, is_completed: false }).subscribe({
+      next: () => {
+        inputElement.value = '';
+        this.loadDashboard();
+      }
+    });
+  }
+
+  toggleSubtask(taskId: string, subtask: any, event: any) {
+    const isCompleted = event.target.checked;
+    this.api.put(`/tasks/${taskId}/subtasks/${subtask.id}`, { is_completed: isCompleted }).subscribe({
+      next: () => this.loadDashboard()
+    });
+  }
+
+  updateSubtaskFeedback(taskId: string, subtask: any, event: any) {
+    const feedback = event.target.value.trim();
+    this.api.put(`/tasks/${taskId}/subtasks/${subtask.id}`, { feedback: feedback }).subscribe({
+      next: () => this.loadDashboard()
     });
   }
 }

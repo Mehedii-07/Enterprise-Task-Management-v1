@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.api.deps import require_team_lead, get_current_user
 from app.models.user import User
 from app.models.task import TaskStatus, TaskPriority
-from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, SubtaskCreate, SubtaskResponse, TaskCommentCreate, TaskCommentResponse, WorkLogCreate, WorkLogResponse
+from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, SubtaskCreate, SubtaskUpdate, SubtaskResponse, TaskCommentCreate, TaskCommentResponse, WorkLogCreate, WorkLogResponse
 from app.schemas.common import MessageResponse
 from app.services.task_service import TaskService
 from app.api.v1.websockets import manager
@@ -82,9 +82,37 @@ def add_subtask(
     task_id: str,
     data: SubtaskCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_team_lead)
+):
+    subtask = TaskService.add_subtask(db, task_id, data, current_user)
+    try:
+        from app.models.task import Task as TaskModel
+        task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
+        project_id = task.project_id if task else None
+        asyncio.run(manager.broadcast({"event": "TASK_UPDATED", "task_id": task_id, "project_id": project_id}))
+    except Exception as e:
+        print(f"WS error: {e}")
+    return subtask
+
+
+@router.put("/{task_id}/subtasks/{subtask_id}", response_model=SubtaskResponse)
+def update_subtask(
+    task_id: str,
+    subtask_id: str,
+    data: SubtaskUpdate,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return TaskService.add_subtask(db, task_id, data, current_user)
+    subtask = TaskService.update_subtask(db, task_id, subtask_id, data, current_user)
+    try:
+        # Safely get project_id from task directly
+        from app.models.task import Task as TaskModel
+        task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
+        project_id = task.project_id if task else None
+        asyncio.run(manager.broadcast({"event": "TASK_UPDATED", "task_id": task_id, "project_id": project_id}))
+    except Exception as e:
+        print(f"WS error: {e}")
+    return subtask
 
 
 # Comments

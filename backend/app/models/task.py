@@ -74,6 +74,7 @@ class Subtask(Base):
     task_id = Column(String(36), ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     is_completed = Column(Boolean, default=False, nullable=False)
+    feedback = Column(Text, nullable=True)
     due_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

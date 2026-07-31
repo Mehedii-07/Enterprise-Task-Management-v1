@@ -42,7 +42,12 @@ import { AuthService } from '../../core/services/auth.service';
 
         <a routerLink="/tasks" routerLinkActive="active" class="nav-item">
           <span class="material-symbols-outlined">task_alt</span>
-          <span>Task Board</span>
+          <span>Task Breakdown</span>
+        </a>
+
+        <a routerLink="/subtasks" routerLinkActive="active" class="nav-item">
+          <span class="material-symbols-outlined">checklist</span>
+          <span>Subtask Progress</span>
         </a>
 
         <!-- Admin & CEO items -->
@@ -59,13 +64,6 @@ import { AuthService } from '../../core/services/auth.service';
             <span>Organizations</span>
           </a>
         </ng-container>
-
-        <div class="nav-section-title">ANALYTICS & REPORTS</div>
-
-        <a routerLink="/reports" routerLinkActive="active" class="nav-item">
-          <span class="material-symbols-outlined">analytics</span>
-          <span>Reports & Exporters</span>
-        </a>
       </nav>
 
       <div class="sidebar-footer">

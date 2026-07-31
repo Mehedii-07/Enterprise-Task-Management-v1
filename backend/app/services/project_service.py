@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.models.project import Project, ProjectMember, ProjectMilestone, ProjectStatus, ProjectPriority, ProjectPhase
-from app.models.user import User, RoleType
+from app.models.user import User, RoleType, Role
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectMilestoneCreate, ProjectAssignRequest, MilestoneToggleRequest
 from app.core.exceptions import EntityNotFoundException, PermissionDeniedException
 
@@ -27,7 +27,9 @@ class ProjectService:
         elif role == RoleType.TEAM_LEAD.value:
             query = query.filter(Project.organization_id == user.organization_id).join(ProjectMember).filter(ProjectMember.user_id == user.id)
         elif role == RoleType.EMPLOYEE.value:
-            query = query.filter(Project.organization_id == user.organization_id, Project.assigned_to_id == user.id)
+            query = query.filter(Project.organization_id == user.organization_id).join(
+                ProjectMember, ProjectMember.project_id == Project.id
+            ).filter(ProjectMember.user_id == user.id)
             
         if status:
             query = query.filter(Project.status == status)
@@ -69,17 +71,28 @@ class ProjectService:
         )
         db.add(project)
         db.flush()
-        
-        # Add creator / manager as project manager member
+
+        # Add creator/manager as MANAGER member
         pm = ProjectMember(project_id=project.id, user_id=project.manager_id, role_in_project="MANAGER")
         db.add(pm)
-        
-        # Add additional team members if provided
+
+        # Auto-add ALL Team Leads in the same organization as LEAD members
+        team_leads = db.query(User).join(User.role).filter(
+            User.organization_id == org_id,
+            User.role.has(name=RoleType.TEAM_LEAD.value)
+        ).all()
+        existing_ids = {project.manager_id}
+        for lead in team_leads:
+            if lead.id not in existing_ids:
+                db.add(ProjectMember(project_id=project.id, user_id=lead.id, role_in_project="LEAD"))
+                existing_ids.add(lead.id)
+
+        # Add any explicitly selected additional members
         for uid in data.member_ids:
-            if uid != project.manager_id:
-                m = ProjectMember(project_id=project.id, user_id=uid, role_in_project="MEMBER")
-                db.add(m)
-                
+            if uid not in existing_ids:
+                db.add(ProjectMember(project_id=project.id, user_id=uid, role_in_project="MEMBER"))
+                existing_ids.add(uid)
+
         db.commit()
         db.refresh(project)
         return project
@@ -121,13 +134,16 @@ class ProjectService:
             project.end_date = data.end_date
             
         if data.member_ids is not None:
-            # Delete old members
+            # Clear old members except manager
             db.query(ProjectMember).filter(ProjectMember.project_id == project.id).delete()
-            # Add new members
+            # Always re-add manager
+            manager_id = project.manager_id
+            if manager_id:
+                db.add(ProjectMember(project_id=project.id, user_id=manager_id, role_in_project="MANAGER"))
+            # Add selected members
             for uid in data.member_ids:
-                if uid != project.manager_id:
-                    m = ProjectMember(project_id=project.id, user_id=uid, role_in_project="MEMBER")
-                    db.add(m)
+                if uid != manager_id:
+                    db.add(ProjectMember(project_id=project.id, user_id=uid, role_in_project="MEMBER"))
 
         db.commit()
         db.refresh(project)

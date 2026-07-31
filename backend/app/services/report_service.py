@@ -106,3 +106,46 @@ class ReportService:
                 "Total Actual Hours": total_actual_hours
             })
         return report
+
+    @staticmethod
+    def generate_project_task_breakdown_data(db: Session, user: User) -> List[Dict[str, Any]]:
+        query = db.query(Project)
+        role = user.role.name.upper()
+        
+        if role == RoleType.CEO.value:
+            pass
+        elif role == RoleType.ADMIN.value:
+            query = query.filter(Project.organization_id == user.organization_id)
+        elif role in [RoleType.TEAM_LEAD.value, RoleType.EMPLOYEE.value]:
+            query = query.filter(Project.organization_id == user.organization_id).join(ProjectMember).filter(ProjectMember.user_id == user.id)
+            
+        projects = query.all()
+        report = []
+        for p in projects:
+            if not p.tasks:
+                report.append({
+                    "Project Code": p.code,
+                    "Project Name": p.name,
+                    "Project Phase": p.phase.value,
+                    "Task Title": "[No Tasks]",
+                    "Task Status": "N/A",
+                    "Task Priority": "N/A",
+                    "Assignee": "N/A",
+                    "Estimated Hours": 0,
+                    "Actual Hours": 0
+                })
+                continue
+                
+            for t in p.tasks:
+                report.append({
+                    "Project Code": p.code,
+                    "Project Name": p.name,
+                    "Project Phase": p.phase.value,
+                    "Task Title": t.title,
+                    "Task Status": t.status.value,
+                    "Task Priority": t.priority.value,
+                    "Assignee": t.assignee.full_name if t.assignee else "Unassigned",
+                    "Estimated Hours": t.estimated_hours or 0,
+                    "Actual Hours": t.actual_hours or 0
+                })
+        return report

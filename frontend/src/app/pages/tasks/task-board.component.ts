@@ -30,7 +30,7 @@ import { Project } from '../../core/models/project.model';
             <span class="material-symbols-outlined">domain</span>
             <span>Manage Projects</span>
           </a>
-          <button *ngIf="auth.hasRole(['CEO'])" class="btn btn-primary" (click)="showCreateModal = true">
+          <button *ngIf="auth.hasRole(['CEO', 'ADMIN', 'TEAM_LEAD'])" class="btn btn-primary" (click)="showCreateModal = true">
             <span class="material-symbols-outlined">add_task</span>
             <span>Create Task</span>
           </button>
@@ -63,7 +63,29 @@ import { Project } from '../../core/models/project.model';
                 <span>{{ task.assignee.first_name }} {{ task.assignee.last_name }}</span>
               </div>
 
-              <div class="status-selector">
+              <!-- Subtasks Section -->
+              <div class="subtasks-section" style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 8px;">
+                <h5 style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">SUBTASKS ({{ task.subtasks?.length || 0 }})</h5>
+                
+                <div class="subtask-list" style="display: flex; flex-direction: column; gap: 6px;">
+                  <div class="subtask-item" *ngFor="let st of task.subtasks" style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.1); padding: 6px; border-radius: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <input type="checkbox" [checked]="st.is_completed" (change)="toggleSubtask(task.id, st, $event)" [disabled]="!canEditTask(task)">
+                      <span [style.text-decoration]="st.is_completed ? 'line-through' : 'none'" [style.opacity]="st.is_completed ? '0.5' : '1'" style="font-size: 0.8rem;">{{ st.title }}</span>
+                    </div>
+                    <div style="padding-left: 20px;">
+                      <input type="text" placeholder="Add feedback..." [ngModel]="st.feedback" (change)="updateSubtaskFeedback(task.id, st, $event)" [disabled]="!canEditTask(task)" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="add-subtask" *ngIf="auth.hasRole(['CEO', 'ADMIN', 'TEAM_LEAD'])" style="margin-top: 8px; display: flex; gap: 4px;">
+                  <input type="text" #newStInput placeholder="New subtask..." style="flex: 1; padding: 4px 6px; font-size: 0.75rem; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                  <button class="btn btn-secondary btn-sm" style="padding: 2px 6px;" (click)="addSubtask(task.id, newStInput)">+</button>
+                </div>
+              </div>
+
+              <div class="status-selector" style="margin-top: 12px;">
                 <select [ngModel]="task.status" (ngModelChange)="updateTaskStatus(task, $event)" [disabled]="!canEditTask(task)">
                   <option value="TODO">TODO</option>
                   <option value="IN_PROGRESS">IN PROGRESS</option>
@@ -271,7 +293,7 @@ export class TaskBoardComponent implements OnInit {
     });
 
     this.ws.messages$.subscribe((msg: WsMessage) => {
-      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED') {
+      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_DELETED') {
         this.loadTasks();
       }
     });
@@ -312,7 +334,7 @@ export class TaskBoardComponent implements OnInit {
   createTask() {
     const payload: any = { ...this.newTask };
     if (!payload.assignee_id) delete payload.assignee_id; // Remove empty assignee
-    
+
     this.api.post('/tasks', payload).subscribe({
       next: () => {
         this.showCreateModal = false;
@@ -320,6 +342,31 @@ export class TaskBoardComponent implements OnInit {
         this.newTask.description = '';
         this.loadTasks();
       }
+    });
+  }
+
+  addSubtask(taskId: string, inputElement: HTMLInputElement) {
+    const title = inputElement.value.trim();
+    if (!title) return;
+    this.api.post(`/tasks/${taskId}/subtasks`, { title: title, is_completed: false }).subscribe({
+      next: () => {
+        inputElement.value = '';
+        this.loadTasks();
+      }
+    });
+  }
+
+  toggleSubtask(taskId: string, subtask: any, event: any) {
+    const isCompleted = event.target.checked;
+    this.api.put(`/tasks/${taskId}/subtasks/${subtask.id}`, { is_completed: isCompleted }).subscribe({
+      next: () => this.loadTasks()
+    });
+  }
+
+  updateSubtaskFeedback(taskId: string, subtask: any, event: any) {
+    const feedback = event.target.value.trim();
+    this.api.put(`/tasks/${taskId}/subtasks/${subtask.id}`, { feedback: feedback }).subscribe({
+      next: () => this.loadTasks()
     });
   }
 }

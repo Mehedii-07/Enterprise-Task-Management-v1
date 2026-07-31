@@ -74,6 +74,10 @@ def delete_project(
     current_user: User = Depends(require_ceo)
 ):
     ProjectService.delete_project(db, project_id, current_user)
+    try:
+        asyncio.run(manager.broadcast({"event": "PROJECT_DELETED", "project_id": project_id}))
+    except Exception as e:
+        print(f"WS error: {e}")
     return MessageResponse(message="Project deleted.")
 
 

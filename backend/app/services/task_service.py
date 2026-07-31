@@ -5,7 +5,7 @@ from app.models.task import Task, Subtask, TaskLabel, TaskComment, WorkLog, Task
 from app.models.project import Project
 from app.models.system import Notification
 from app.models.user import User, RoleType
-from app.schemas.task import TaskCreate, TaskUpdate, SubtaskCreate, TaskCommentCreate, WorkLogCreate
+from app.schemas.task import TaskCreate, TaskUpdate, SubtaskCreate, SubtaskUpdate, TaskCommentCreate, WorkLogCreate
 from app.core.exceptions import EntityNotFoundException, PermissionDeniedException
 
 
@@ -141,16 +141,53 @@ class TaskService:
 
     @staticmethod
     def add_subtask(db: Session, task_id: str, data: SubtaskCreate, user: User) -> Subtask:
-        task = TaskService.get_task_by_id(db, task_id, user)
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise EntityNotFoundException("Task", task_id)
         subtask = Subtask(
             task_id=task.id,
             title=data.title,
             is_completed=data.is_completed,
+            feedback=data.feedback,
             due_date=data.due_date
         )
         db.add(subtask)
         db.commit()
         db.refresh(subtask)
+        return subtask
+
+    @staticmethod
+    def update_subtask(db: Session, task_id: str, subtask_id: str, data: SubtaskUpdate, user: User) -> Subtask:
+        task = TaskService.get_task_by_id(db, task_id, user)
+        subtask = db.query(Subtask).filter(Subtask.id == subtask_id, Subtask.task_id == task_id).first()
+        if not subtask:
+            raise EntityNotFoundException("Subtask", subtask_id)
+
+        if data.title is not None:
+            subtask.title = data.title
+        if data.is_completed is not None:
+            subtask.is_completed = data.is_completed
+        if data.feedback is not None:
+            subtask.feedback = data.feedback
+        if data.due_date is not None:
+            subtask.due_date = data.due_date
+
+        db.commit()
+        db.refresh(subtask)
+        
+        # Auto-complete or auto-revert the parent task based on subtask progress
+        all_subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
+        if all_subtasks:
+            all_done = all(st.is_completed for st in all_subtasks)
+            if all_done and task.status != TaskStatus.COMPLETED:
+                task.status = TaskStatus.COMPLETED
+                db.commit()
+                db.refresh(task)
+            elif not all_done and task.status == TaskStatus.COMPLETED:
+                task.status = TaskStatus.IN_PROGRESS
+                db.commit()
+                db.refresh(task)
+
         return subtask
 
     @staticmethod

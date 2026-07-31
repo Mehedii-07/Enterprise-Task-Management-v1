@@ -169,6 +169,40 @@ class PdfService:
                 ('PADDING', (0, 0), (-1, -1), 8),
             ]))
             elements.append(task_table)
+
+            elements.append(Spacer(1, 30))
+            elements.append(Paragraph("Detailed Task Breakdown", h2_style))
+            
+            detailed_data = [["Task", "Status", "Assignee", "Subtask Breakdown"]]
+            for t in project.tasks:
+                subtasks_text = []
+                for st in t.subtasks:
+                    check = "[X]" if st.is_completed else "[ ]"
+                    fb = f" - {st.feedback}" if st.feedback else ""
+                    subtasks_text.append(f"{check} {st.title}{fb}")
+                
+                subtasks_str = "\n".join(subtasks_text) if subtasks_text else "No subtasks"
+                detailed_data.append([
+                    t.title,
+                    t.status.value,
+                    t.assignee.full_name if t.assignee else "Unassigned",
+                    subtasks_str
+                ])
+                
+            detailed_table = Table(detailed_data, colWidths=[1.5*inch, 1*inch, 1.25*inch, 2.75*inch])
+            detailed_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0F172A")),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#FFFFFF")),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ('PADDING', (0, 0), (-1, -1), 8),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            elements.append(detailed_table)
+
         else:
             elements.append(Paragraph("No tasks assigned to this project.", normal_style))
 

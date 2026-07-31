@@ -75,6 +75,18 @@ import { HttpClient } from '@angular/common/http';
             <span>Download Progress CSV</span>
           </button>
         </div>
+
+        <div class="report-card glass-card">
+          <div class="icon-wrapper green">
+            <span class="material-symbols-outlined">account_tree</span>
+          </div>
+          <h3>Project Task Breakdown (Excel .xlsx)</h3>
+          <p>Export hierarchical breakdown of all projects and their associated tasks, including assignee and statuses.</p>
+          <button (click)="downloadReport('http://localhost:8000/api/v1/reports/projects/task-breakdown/excel', 'project_task_breakdown.xlsx')" class="btn btn-primary" [disabled]="isDownloading">
+            <span class="material-symbols-outlined">download</span>
+            <span>Download Breakdown</span>
+          </button>
+        </div>
       </div>
     </div>
   `,

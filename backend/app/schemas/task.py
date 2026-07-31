@@ -8,11 +8,19 @@ from app.schemas.user import UserResponse
 class SubtaskBase(BaseModel):
     title: str
     is_completed: bool = False
+    feedback: Optional[str] = None
     due_date: Optional[datetime] = None
 
 
 class SubtaskCreate(SubtaskBase):
     pass
+
+
+class SubtaskUpdate(BaseModel):
+    title: Optional[str] = None
+    is_completed: Optional[bool] = None
+    feedback: Optional[str] = None
+    due_date: Optional[datetime] = None
 
 
 class SubtaskResponse(SubtaskBase):
@@ -21,6 +29,11 @@ class SubtaskResponse(SubtaskBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SubtaskWithTaskResponse(SubtaskResponse):
+    """Extended response that includes the parent task info for WS broadcasts."""
+    pass
 
 
 class TaskLabelResponse(BaseModel):

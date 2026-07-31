@@ -7,6 +7,7 @@ import { ProjectListComponent } from './pages/projects/project-list.component';
 import { TaskBoardComponent } from './pages/tasks/task-board.component';
 import { UserManagementComponent } from './pages/users/user-management.component';
 import { ReportsComponent } from './pages/reports/reports.component';
+import { SubtasksComponent } from './pages/subtasks/subtasks.component';
 
 export const routes: Routes = [
   { path: 'auth/login', component: LoginComponent },
@@ -20,7 +21,8 @@ export const routes: Routes = [
       { path: 'projects', component: ProjectListComponent },
       { path: 'tasks', component: TaskBoardComponent },
       { path: 'users', component: UserManagementComponent, canActivate: [roleGuard(['CEO', 'ADMIN'])] },
-      { path: 'reports', component: ReportsComponent }
+      { path: 'reports', component: ReportsComponent },
+      { path: 'subtasks', component: SubtasksComponent }
     ]
   },
   { path: '**', redirectTo: 'dashboard' }
