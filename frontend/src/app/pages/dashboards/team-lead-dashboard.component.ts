@@ -124,7 +124,7 @@ export class TeamLeadDashboardComponent implements OnInit {
     this.loadDashboard();
     
     this.ws.messages$.subscribe((msg: WsMessage) => {
-      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_UPDATED') {
+      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_UPDATED' || msg.event === 'PROJECT_ASSIGNED' || msg.event === 'MILESTONE_TOGGLED') {
         this.loadDashboard();
       }
     });

@@ -1,8 +1,8 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.models.project import Project, ProjectMember, ProjectMilestone, ProjectStatus, ProjectPriority
+from app.models.project import Project, ProjectMember, ProjectMilestone, ProjectStatus, ProjectPriority, ProjectPhase
 from app.models.user import User, RoleType
-from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectMilestoneCreate
+from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectMilestoneCreate, ProjectAssignRequest, MilestoneToggleRequest
 from app.core.exceptions import EntityNotFoundException, PermissionDeniedException
 
 
@@ -24,8 +24,10 @@ class ProjectService:
             pass  # Unrestricted global access
         elif role == RoleType.ADMIN.value:
             query = query.filter(Project.organization_id == user.organization_id)
-        elif role in [RoleType.TEAM_LEAD.value, RoleType.EMPLOYEE.value]:
+        elif role == RoleType.TEAM_LEAD.value:
             query = query.filter(Project.organization_id == user.organization_id).join(ProjectMember).filter(ProjectMember.user_id == user.id)
+        elif role == RoleType.EMPLOYEE.value:
+            query = query.filter(Project.organization_id == user.organization_id, Project.assigned_to_id == user.id)
             
         if status:
             query = query.filter(Project.status == status)
@@ -60,6 +62,8 @@ class ProjectService:
             budget=data.budget,
             status=data.status,
             priority=data.priority,
+            phase=data.phase,
+            assigned_to_id=data.assigned_to_id,
             start_date=data.start_date,
             end_date=data.end_date
         )
@@ -85,10 +89,13 @@ class ProjectService:
         project = ProjectService.get_project_by_id(db, project_id, user)
         
         role = user.role.name.upper()
-        if role in [RoleType.TEAM_LEAD.value, RoleType.EMPLOYEE.value]:
+        if role == RoleType.TEAM_LEAD.value:
             is_member = any(m.user_id == user.id for m in project.members)
             if not is_member:
                 raise PermissionDeniedException("You can only update projects you are assigned to.")
+        elif role == RoleType.EMPLOYEE.value:
+            if project.assigned_to_id != user.id:
+                raise PermissionDeniedException("You can only update projects assigned to you.")
         
         if data.name is not None:
             project.name = data.name
@@ -102,6 +109,10 @@ class ProjectService:
             project.status = data.status
         if data.priority is not None:
             project.priority = data.priority
+        if data.phase is not None:
+            project.phase = data.phase
+        if data.assigned_to_id is not None:
+            project.assigned_to_id = data.assigned_to_id
         if data.manager_id is not None:
             project.manager_id = data.manager_id
         if data.start_date is not None:
@@ -139,6 +150,29 @@ class ProjectService:
             is_completed=data.is_completed
         )
         db.add(milestone)
+        db.commit()
+        db.refresh(milestone)
+        return milestone
+
+    @staticmethod
+    def assign_project(db: Session, project_id: str, data: ProjectAssignRequest, user: User) -> Project:
+        project = ProjectService.get_project_by_id(db, project_id, user)
+        project.assigned_to_id = data.assigned_to_id
+        db.commit()
+        db.refresh(project)
+        return project
+
+    @staticmethod
+    def toggle_milestone(db: Session, project_id: str, milestone_id: str, data: MilestoneToggleRequest, user: User) -> ProjectMilestone:
+        project = ProjectService.get_project_by_id(db, project_id, user)
+        milestone = db.query(ProjectMilestone).filter(ProjectMilestone.id == milestone_id, ProjectMilestone.project_id == project_id).first()
+        if not milestone:
+            raise EntityNotFoundException("ProjectMilestone", milestone_id)
+        
+        milestone.is_completed = data.is_completed
+        if data.project_phase:
+            project.phase = data.project_phase
+            
         db.commit()
         db.refresh(milestone)
         return milestone

@@ -14,6 +14,13 @@ class ProjectStatus(str, PyEnum):
     ARCHIVED = "ARCHIVED"
 
 
+class ProjectPhase(str, PyEnum):
+    PLANNING = "Planning"
+    IN_PROGRESS = "In Progress"
+    TESTING = "Testing"
+    COMPLETED = "Completed"
+
+
 class ProjectPriority(str, PyEnum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
@@ -28,6 +35,7 @@ class Project(Base):
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
     department_id = Column(String(36), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
     manager_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    assigned_to_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
 
     name = Column(String(255), nullable=False)
     code = Column(String(50), nullable=False, index=True)
@@ -36,6 +44,7 @@ class Project(Base):
     
     status = Column(Enum(ProjectStatus), default=ProjectStatus.ACTIVE, nullable=False, index=True)
     priority = Column(Enum(ProjectPriority), default=ProjectPriority.MEDIUM, nullable=False)
+    phase = Column(Enum(ProjectPhase), default=ProjectPhase.PLANNING, nullable=False)
     
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
@@ -46,6 +55,7 @@ class Project(Base):
     organization = relationship("Organization", back_populates="projects")
     department = relationship("Department", back_populates="projects")
     manager = relationship("User", back_populates="managed_projects", foreign_keys=[manager_id])
+    assigned_to = relationship("User", back_populates="assigned_projects", foreign_keys=[assigned_to_id])
     
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
     milestones = relationship("ProjectMilestone", back_populates="project", cascade="all, delete-orphan")
@@ -53,10 +63,15 @@ class Project(Base):
 
     @property
     def progress_percentage(self) -> float:
-        if not self.tasks:
-            return 0.0
-        completed = sum(1 for t in self.tasks if t.status.value == "COMPLETED")
-        return round((completed / len(self.tasks)) * 100, 1)
+        if self.phase == ProjectPhase.PLANNING:
+            return 25.0
+        elif self.phase == ProjectPhase.IN_PROGRESS:
+            return 50.0
+        elif self.phase == ProjectPhase.TESTING:
+            return 75.0
+        elif self.phase == ProjectPhase.COMPLETED:
+            return 100.0
+        return 0.0
 
 
 class ProjectMember(Base):

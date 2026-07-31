@@ -35,6 +35,14 @@ import { TopbarComponent } from './topbar/topbar.component';
       margin-left: 260px;
       padding: 32px;
       flex: 1;
+      transition: margin-left 0.3s ease;
+    }
+
+    @media (max-width: 1024px) {
+      .page-content {
+        margin-left: 80px;
+        padding: 24px;
+      }
     }
   `]
 })

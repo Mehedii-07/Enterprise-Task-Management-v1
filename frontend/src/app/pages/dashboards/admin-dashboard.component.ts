@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
+import { WebsocketService, WsMessage } from '../../core/services/websocket.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -104,9 +105,20 @@ import { ApiService } from '../../core/services/api.service';
 })
 export class AdminDashboardComponent implements OnInit {
   api = inject(ApiService);
+  ws = inject(WebsocketService);
   stats = signal<any>(null);
 
   ngOnInit() {
+    this.loadDashboard();
+    
+    this.ws.messages$.subscribe((msg: WsMessage) => {
+      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_UPDATED' || msg.event === 'PROJECT_ASSIGNED' || msg.event === 'MILESTONE_TOGGLED') {
+        this.loadDashboard();
+      }
+    });
+  }
+
+  loadDashboard() {
     this.api.get('/dashboards/admin').subscribe({
       next: res => this.stats.set(res)
     });

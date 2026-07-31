@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
-from app.models.project import ProjectStatus, ProjectPriority
+from app.models.project import ProjectStatus, ProjectPriority, ProjectPhase
 from app.schemas.user import UserResponse
 
 
@@ -22,6 +22,15 @@ class ProjectMilestoneResponse(ProjectMilestoneBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class MilestoneToggleRequest(BaseModel):
+    is_completed: bool
+    project_phase: Optional[ProjectPhase] = None
+
+
+class ProjectAssignRequest(BaseModel):
+    assigned_to_id: Optional[str] = None
 
 
 class ProjectMemberCreate(BaseModel):
@@ -45,6 +54,7 @@ class ProjectBase(BaseModel):
     budget: float = 0.0
     status: ProjectStatus = ProjectStatus.ACTIVE
     priority: ProjectPriority = ProjectPriority.MEDIUM
+    phase: ProjectPhase = ProjectPhase.PLANNING
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
@@ -53,6 +63,7 @@ class ProjectCreate(ProjectBase):
     organization_id: Optional[str] = None
     department_id: Optional[str] = None
     manager_id: Optional[str] = None
+    assigned_to_id: Optional[str] = None
     member_ids: List[str] = []
 
 
@@ -63,7 +74,9 @@ class ProjectUpdate(BaseModel):
     budget: Optional[float] = None
     status: Optional[ProjectStatus] = None
     priority: Optional[ProjectPriority] = None
+    phase: Optional[ProjectPhase] = None
     manager_id: Optional[str] = None
+    assigned_to_id: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     member_ids: Optional[List[str]] = None
@@ -74,7 +87,9 @@ class ProjectResponse(ProjectBase):
     organization_id: str
     department_id: Optional[str] = None
     manager_id: Optional[str] = None
+    assigned_to_id: Optional[str] = None
     manager: Optional[UserResponse] = None
+    assigned_to: Optional[UserResponse] = None
     members: List[ProjectMemberResponse] = []
     milestones: List[ProjectMilestoneResponse] = []
     progress_percentage: float = 0.0

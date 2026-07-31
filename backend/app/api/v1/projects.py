@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.api.deps import require_team_lead, require_admin, require_ceo, get_current_user, require_authenticated
 from app.models.user import User
 from app.models.project import ProjectStatus, ProjectPriority
-from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectMilestoneCreate, ProjectMilestoneResponse
+from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectMilestoneCreate, ProjectMilestoneResponse, ProjectAssignRequest, MilestoneToggleRequest
 from app.schemas.common import MessageResponse
 from app.services.project_service import ProjectService
 from app.api.v1.websockets import manager
@@ -82,3 +82,34 @@ def add_milestone(
     current_user: User = Depends(require_team_lead)
 ):
     return ProjectService.add_milestone(db, project_id, data, current_user)
+
+
+@router.patch("/{project_id}/assign", response_model=ProjectResponse)
+def assign_project(
+    project_id: str,
+    data: ProjectAssignRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    project = ProjectService.assign_project(db, project_id, data, current_user)
+    try:
+        asyncio.run(manager.broadcast({"event": "PROJECT_ASSIGNED", "project_id": project.id}))
+    except Exception as e:
+        print(f"WS error: {e}")
+    return project
+
+
+@router.patch("/{project_id}/milestones/{milestone_id}", response_model=ProjectMilestoneResponse)
+def toggle_milestone(
+    project_id: str,
+    milestone_id: str,
+    data: MilestoneToggleRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    milestone = ProjectService.toggle_milestone(db, project_id, milestone_id, data, current_user)
+    try:
+        asyncio.run(manager.broadcast({"event": "MILESTONE_TOGGLED", "project_id": project_id}))
+    except Exception as e:
+        print(f"WS error: {e}")
+    return milestone

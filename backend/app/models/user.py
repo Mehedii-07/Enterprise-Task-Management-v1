@@ -76,6 +76,7 @@ class User(Base):
     role = relationship("Role", back_populates="users")
     
     managed_projects = relationship("Project", back_populates="manager", foreign_keys="Project.manager_id")
+    assigned_projects = relationship("Project", back_populates="assigned_to", foreign_keys="Project.assigned_to_id")
     project_memberships = relationship("ProjectMember", back_populates="user", cascade="all, delete-orphan")
     
     assigned_tasks = relationship("Task", back_populates="assignee", foreign_keys="Task.assignee_id")

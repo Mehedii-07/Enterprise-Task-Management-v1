@@ -40,121 +40,130 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
         </div>
       </div>
 
-      <!-- Real-Time Assigned Tasks & Projects Table -->
-      <div class="tasks-section glass-card">
+      <!-- My Active Workspace -->
+      <div class="workspace-section glass-card">
         <div class="section-header">
           <h3>
-            <span class="material-symbols-outlined icon">assignment</span>
+            <span class="material-symbols-outlined icon">work</span>
             <span>My Active Tasks & Projects</span>
           </h3>
           <button (click)="loadDashboard()" class="btn btn-secondary btn-sm">
             <span class="material-symbols-outlined">refresh</span>
-            <span>Refresh Tasks</span>
+            <span>Refresh Data</span>
           </button>
         </div>
 
-        <div *ngIf="tasks().length === 0" class="empty-state">
-          <span class="material-symbols-outlined">task</span>
-          <p>No active tasks assigned yet. Projects & tasks created by CEO will appear here automatically.</p>
+        <!-- Assigned Projects Sub-section -->
+        <div *ngIf="stats()?.assigned_projects?.length > 0" class="subsection">
+          <h4 class="subsection-title">Assigned Projects</h4>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Project Code</th>
+                  <th>Project Name</th>
+                  <th>Phase</th>
+                  <th>Project Progress</th>
+                  <th>Milestones Checklist</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of stats()?.assigned_projects">
+                  <td class="font-bold text-primary">{{ p.code }}</td>
+                  <td>{{ p.name }}</td>
+                  <td>
+                    <span class="badge" style="display: block; margin-bottom: 6px;" [ngClass]="'badge-' + (p.phase || 'PLANNING').toLowerCase().replace(' ', '-')">{{ p.phase || 'Planning' }}</span>
+                    <select
+                      [ngModel]="p.phase"
+                      (ngModelChange)="updateProjectPhase(p, $event)"
+                      class="status-select" style="width: 100%;">
+                      <option value="Planning">Planning</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Testing">Testing</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </td>
+                  <td style="min-width: 150px;">
+                    <div class="progress-section">
+                      <div class="progress-header" style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px;">
+                        <span>Completion</span>
+                        <span class="font-bold text-primary">{{ p.progress_percentage || 0 }}%</span>
+                      </div>
+                      <div class="progress-bar-container" style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
+                        <div class="progress-bar-fill" [style.width.%]="p.progress_percentage || 0" style="height: 100%; background: var(--accent-primary); border-radius: 4px; transition: width 0.3s ease;"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="min-width: 250px;">
+                    <div class="milestones-checklist">
+                      <div *ngIf="!p.milestones || p.milestones.length === 0" class="text-muted" style="font-size: 0.8rem; font-style: italic;">No milestones defined.</div>
+                      <div *ngFor="let m of p.milestones" class="milestone-item" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <input type="checkbox" [checked]="m.is_completed" (change)="toggleMilestone(p, m, $event)" style="cursor: pointer;" />
+                        <span [class.completed]="m.is_completed" style="font-size: 0.85rem;">{{ m.title }}</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div *ngIf="tasks().length > 0" class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th>Task Title</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Update Status</th>
-                <th>Log Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let task of tasks()">
-                <td><span class="badge badge-role">{{ getProjectCode(task.project_id) }}</span></td>
-                <td class="font-bold">{{ task.title }}</td>
-                <td>
-                  <span class="badge" [ngClass]="'priority-' + (task.priority || 'LOW').toLowerCase()">
-                    {{ task.priority }}
-                  </span>
-                </td>
-                <td>
-                  <span class="badge" [ngClass]="'status-' + (task.status || 'TODO').toLowerCase()">
-                    {{ task.status }}
-                  </span>
-                </td>
-                <td>
-                  <select
-                    [ngModel]="task.status"
-                    (ngModelChange)="updateTaskStatus(task, $event)"
-                    class="status-select">
-                    <option value="TODO">TODO</option>
-                    <option value="IN_PROGRESS">IN_PROGRESS</option>
-                    <option value="REVIEW">REVIEW</option>
-                    <option value="COMPLETED">COMPLETED</option>
-                  </select>
-                </td>
-                <td>
-                  <button (click)="logWorkHours(task)" class="btn btn-secondary btn-sm">
-                    <span class="material-symbols-outlined">schedule</span>
-                    <span>Log Work</span>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <!-- Assigned Tasks Sub-section -->
+        <div class="subsection" [style.margin-top]="stats()?.assigned_projects?.length > 0 ? '32px' : '0'">
+          <h4 class="subsection-title">Active Tasks</h4>
+          <div *ngIf="tasks().length === 0" class="empty-state">
+            <span class="material-symbols-outlined">task</span>
+            <p>No active tasks assigned yet. Projects & tasks created by CEO will appear here automatically.</p>
+          </div>
 
-      <!-- Assigned Projects Table -->
-      <div class="projects-section glass-card" *ngIf="stats()?.assigned_projects?.length > 0">
-        <div class="section-header">
-          <h3>
-            <span class="material-symbols-outlined icon">domain</span>
-            <span>My Assigned Projects</span>
-          </h3>
-        </div>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Project Code</th>
-                <th>Project Name</th>
-                <th>Status</th>
-                <th>Project Progress</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let p of stats()?.assigned_projects">
-                <td class="font-bold text-primary">{{ p.code }}</td>
-                <td>{{ p.name }}</td>
-                <td>
-                  <select
-                    [ngModel]="p.status"
-                    (ngModelChange)="updateProjectStatus(p, $event)"
-                    class="status-select">
-                    <option value="PLANNING">PLANNING</option>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="ON_HOLD">ON_HOLD</option>
-                    <option value="COMPLETED">COMPLETED</option>
-                    <option value="ARCHIVED">ARCHIVED</option>
-                  </select>
-                </td>
-                <td style="min-width: 150px;">
-                  <div class="progress-section">
-                    <div class="progress-header" style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px;">
-                      <span>Completion</span>
-                      <span class="font-bold text-primary">{{ p.progress_percentage || 0 }}%</span>
-                    </div>
-                    <div class="progress-bar-container" style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
-                      <div class="progress-bar-fill" [style.width.%]="p.progress_percentage || 0" style="height: 100%; background: var(--accent-primary); border-radius: 4px; transition: width 0.3s ease;"></div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div *ngIf="tasks().length > 0" class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th>Task Title</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Update Status</th>
+                  <th>Log Hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let task of tasks()">
+                  <td><span class="badge badge-role">{{ getProjectCode(task.project_id) }}</span></td>
+                  <td class="font-bold">{{ task.title }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="'priority-' + (task.priority || 'LOW').toLowerCase()">
+                      {{ task.priority }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" [ngClass]="'status-' + (task.status || 'TODO').toLowerCase()">
+                      {{ task.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <select
+                      [ngModel]="task.status"
+                      (ngModelChange)="updateTaskStatus(task, $event)"
+                      class="status-select">
+                      <option value="TODO">TODO</option>
+                      <option value="IN_PROGRESS">IN_PROGRESS</option>
+                      <option value="REVIEW">REVIEW</option>
+                      <option value="COMPLETED">COMPLETED</option>
+                    </select>
+                  </td>
+                  <td>
+                    <button (click)="logWorkHours(task)" class="btn btn-secondary btn-sm">
+                      <span class="material-symbols-outlined">schedule</span>
+                      <span>Log Work</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -192,13 +201,22 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
         .text-primary { color: var(--accent-primary); }
       }
     }
-    .tasks-section {
+    .workspace-section {
       .section-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
         h3 { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+      }
+      .subsection {
+        .subsection-title {
+          font-size: 0.9rem;
+          color: var(--text-muted);
+          margin-bottom: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
       }
       .empty-state {
         text-align: center;
@@ -221,10 +239,6 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
         font-size: 0.85rem;
       }
       .btn-sm { padding: 4px 10px; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; }
-    }
-    .projects-section {
-      .section-header { margin-bottom: 16px; h3 { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; } }
-      .data-table { width: 100%; border-collapse: collapse; th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); } th { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); } }
       .text-primary { color: var(--accent-primary); }
     }
     .team-contribution {
@@ -247,6 +261,7 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
         }
       }
     }
+    .completed { text-decoration: line-through; color: var(--text-muted); opacity: 0.7; }
   `]
 })
 export class EmployeeDashboardComponent implements OnInit {
@@ -259,7 +274,7 @@ export class EmployeeDashboardComponent implements OnInit {
     this.loadDashboard();
     
     this.ws.messages$.subscribe((msg: WsMessage) => {
-      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_UPDATED') {
+      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_UPDATED' || msg.event === 'PROJECT_ASSIGNED' || msg.event === 'MILESTONE_TOGGLED') {
         this.loadDashboard();
       }
     });
@@ -291,10 +306,22 @@ export class EmployeeDashboardComponent implements OnInit {
     });
   }
 
-  updateProjectStatus(project: any, newStatus: string) {
-    this.api.put('/projects/' + project.id, { status: newStatus }).subscribe({
+  updateProjectPhase(project: any, newPhase: string) {
+    this.api.put('/projects/' + project.id, { phase: newPhase }).subscribe({
       next: () => {
-        project.status = newStatus;
+        project.phase = newPhase;
+        this.loadDashboard();
+      }
+    });
+  }
+
+  toggleMilestone(project: any, milestone: any, event: any) {
+    const isCompleted = event.target.checked;
+    this.api.patch('/projects/' + project.id + '/milestones/' + milestone.id, {
+      is_completed: isCompleted,
+      project_phase: project.phase
+    }).subscribe({
+      next: () => {
         this.loadDashboard();
       }
     });

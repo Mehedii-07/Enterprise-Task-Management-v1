@@ -1,11 +1,13 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
+import { WebsocketService, WsMessage } from '../../core/services/websocket.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-ceo-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="dashboard-page">
       <div class="header-banner glass-card">
@@ -90,6 +92,7 @@ import { ApiService } from '../../core/services/api.service';
               <tr>
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Project Code</th>
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Project Name</th>
+                <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Assigned Employee</th>
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Status</th>
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Overall Progress</th>
               </tr>
@@ -100,6 +103,15 @@ import { ApiService } from '../../core/services/api.service';
                   <span class="badge" style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">{{ p.code }}</span>
                 </td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); font-weight: 500;">{{ p.name }}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">
+                  <select
+                    [ngModel]="p.assigned_to_id"
+                    (ngModelChange)="assignProject(p.id, $event)"
+                    style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                    <option [ngValue]="null">-- Unassigned --</option>
+                    <option *ngFor="let u of users()" [value]="u.id">{{ u.first_name }} {{ u.last_name }}</option>
+                  </select>
+                </td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">
                   <span class="badge" [class]="'badge-' + (p.status || 'ACTIVE').toLowerCase()">{{ p.status }}</span>
                 </td>
@@ -197,11 +209,38 @@ import { ApiService } from '../../core/services/api.service';
 })
 export class CEODashboardComponent implements OnInit {
   api = inject(ApiService);
+  ws = inject(WebsocketService);
   stats = signal<any>(null);
+  users = signal<any[]>([]);
 
   ngOnInit() {
+    this.loadDashboard();
+    
+    this.api.get('/users').subscribe({
+      next: (res: any) => {
+        const emps = Array.isArray(res) ? res.filter((u: any) => u.role?.name === 'EMPLOYEE' || u.role_id) : [];
+        this.users.set(emps);
+      }
+    });
+
+    this.ws.messages$.subscribe((msg: WsMessage) => {
+      if (msg.event === 'TASK_CREATED' || msg.event === 'TASK_UPDATED' || msg.event === 'PROJECT_UPDATED' || msg.event === 'PROJECT_ASSIGNED' || msg.event === 'MILESTONE_TOGGLED') {
+        this.loadDashboard();
+      }
+    });
+  }
+
+  loadDashboard() {
     this.api.get('/dashboards/ceo').subscribe({
       next: res => this.stats.set(res)
+    });
+  }
+
+  assignProject(projectId: string, employeeId: string | null) {
+    this.api.patch('/projects/' + projectId + '/assign', { assigned_to_id: employeeId }).subscribe({
+      next: () => {
+        this.loadDashboard();
+      }
     });
   }
 }

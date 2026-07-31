@@ -16,7 +16,7 @@ class DashboardService:
         now = datetime.utcnow()
         today_start = datetime(now.year, now.month, now.day)
         
-        project_member_subq = db.query(ProjectMember.project_id).filter(ProjectMember.user_id == user.id).subquery()
+        project_member_subq = db.query(Project.id).filter(Project.assigned_to_id == user.id).subquery()
         
         assigned_tasks = db.query(Task).filter(
             or_(
@@ -66,10 +66,7 @@ class DashboardService:
 
         assigned_projects = db.query(Project).filter(
             Project.organization_id == user.organization_id,
-            or_(
-                Project.members.any(ProjectMember.user_id == user.id),
-                Project.tasks.any(Task.assignee_id == user.id)
-            )
+            Project.assigned_to_id == user.id
         ).all()
 
         return {

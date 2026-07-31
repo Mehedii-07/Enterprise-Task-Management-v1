@@ -202,6 +202,44 @@ import { AuthService } from '../../core/services/auth.service';
         }
       }
     }
+
+    /* Responsive Sidebar Collapsed View */
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 80px;
+        padding: 24px 8px;
+        align-items: center;
+        transition: width 0.3s ease;
+      }
+      .brand {
+        flex-direction: column;
+        padding-bottom: 16px;
+        .brand-text { display: none; }
+      }
+      .user-profile-badge {
+        flex-direction: column;
+        padding: 8px;
+        .info { display: none; }
+      }
+      .nav-menu {
+        align-items: center;
+        width: 100%;
+        .nav-section-title { display: none; }
+        .nav-item {
+          padding: 12px;
+          justify-content: center;
+          span:not(.material-symbols-outlined) { display: none; }
+        }
+      }
+      .sidebar-footer {
+        width: 100%;
+        .logout-btn {
+          justify-content: center;
+          padding: 12px;
+          span:not(.material-symbols-outlined) { display: none; }
+        }
+      }
+    }
   `]
 })
 export class SidebarComponent {
