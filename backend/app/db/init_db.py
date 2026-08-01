@@ -12,7 +12,7 @@ def init_db(db: Session) -> None:
     roles = [
         (RoleType.CEO.value, "CEO Super Admin with global system control"),
         (RoleType.ADMIN.value, "Organization Admin with company-wide access"),
-        (RoleType.TEAM_LEAD.value, "Team Lead managing projects and assignees"),
+        (RoleType.PROJECT_LEAD.value, "Project Lead managing projects and assignees"),
         (RoleType.EMPLOYEE.value, "Individual contributor employee")
     ]
     
@@ -72,7 +72,7 @@ def init_db(db: Session) -> None:
     # 4. Seed Admin, Team Lead, and Employee accounts for quick testing
     demo_users = [
         ("admin@enterprise.com", "Admin123!", "Alice", "Admin", RoleType.ADMIN.value, "Org Admin"),
-        ("lead@enterprise.com", "Lead123!", "Bob", "Leader", RoleType.TEAM_LEAD.value, "Tech Lead"),
+        ("lead@enterprise.com", "Lead123!", "Bob", "Leader", RoleType.PROJECT_LEAD.value, "Project Lead"),
         ("emp@enterprise.com", "Emp123!", "Charlie", "Worker", RoleType.EMPLOYEE.value, "Software Engineer"),
     ]
 
@@ -105,7 +105,7 @@ def init_db(db: Session) -> None:
         proj = Project(
             organization_id=org.id,
             department_id=dept.id,
-            manager_id=created_users[RoleType.TEAM_LEAD.value].id,
+            manager_id=created_users[RoleType.PROJECT_LEAD.value].id,
             name="SaaS Cloud Migration & Modernization",
             code="PRJ-001",
             description="Migrate legacy infrastructure to modern microservices architecture",
@@ -119,7 +119,7 @@ def init_db(db: Session) -> None:
         task = Task(
             project_id=proj.id,
             assignee_id=created_users[RoleType.EMPLOYEE.value].id,
-            reporter_id=created_users[RoleType.TEAM_LEAD.value].id,
+            reporter_id=created_users[RoleType.PROJECT_LEAD.value].id,
             title="Implement OAuth2 & JWT Security Module",
             description="Build robust authentication token flow with access and refresh tokens.",
             status=TaskStatus.IN_PROGRESS,

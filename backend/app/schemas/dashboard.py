@@ -25,9 +25,11 @@ class EmployeeDashboardResponse(BaseModel):
     
     # Team contribution section for employee
     team_contribution: Dict[str, Any]
+    total_revenue: float = 0.0
+    total_remaining_budget: float = 0.0
 
 
-class TeamLeadDashboardResponse(BaseModel):
+class ProjectLeadDashboardResponse(BaseModel):
     team_size: int
     active_projects_count: int
     total_team_tasks: int
@@ -40,6 +42,8 @@ class TeamLeadDashboardResponse(BaseModel):
     team_leaderboard: List[Dict[str, Any]]
     active_projects: List[ProjectResponse] = []
     project_progress: List[Dict[str, Any]]
+    total_revenue: float = 0.0
+    total_remaining_budget: float = 0.0
 
 
 class AdminDashboardResponse(BaseModel):
@@ -56,6 +60,8 @@ class AdminDashboardResponse(BaseModel):
     organization_performance_score: float
     employee_ranking: List[Dict[str, Any]]
     late_task_statistics: Dict[str, Any]
+    total_revenue: float = 0.0
+    total_remaining_budget: float = 0.0
 
 
 class CEODashboardResponse(BaseModel):
@@ -77,3 +83,5 @@ class CEODashboardResponse(BaseModel):
     login_statistics: Dict[str, Any]
     organization_comparison: List[Dict[str, Any]]
     recent_audit_logs: List[Dict[str, Any]]
+    total_revenue: float
+    total_remaining_budget: float

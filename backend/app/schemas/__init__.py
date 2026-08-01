@@ -4,7 +4,7 @@ from app.schemas.user import UserCreate, UserUpdate, UserResponse, RoleSchema
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate, OrganizationResponse, DepartmentCreate, DepartmentUpdate, DepartmentResponse
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectMemberCreate, ProjectMemberResponse, ProjectMilestoneCreate, ProjectMilestoneResponse
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, SubtaskCreate, SubtaskResponse, TaskLabelResponse, TaskCommentCreate, TaskCommentResponse, WorkLogCreate, WorkLogResponse
-from app.schemas.dashboard import EmployeeDashboardResponse, TeamLeadDashboardResponse, AdminDashboardResponse, CEODashboardResponse
+from app.schemas.dashboard import EmployeeDashboardResponse, ProjectLeadDashboardResponse, AdminDashboardResponse, CEODashboardResponse
 
 __all__ = [
     "MessageResponse",
@@ -46,7 +46,7 @@ __all__ = [
     "WorkLogCreate",
     "WorkLogResponse",
     "EmployeeDashboardResponse",
-    "TeamLeadDashboardResponse",
+    "ProjectLeadDashboardResponse",
     "AdminDashboardResponse",
     "CEODashboardResponse",
 ]

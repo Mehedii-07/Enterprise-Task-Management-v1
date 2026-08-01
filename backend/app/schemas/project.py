@@ -31,6 +31,7 @@ class MilestoneToggleRequest(BaseModel):
 
 class ProjectAssignRequest(BaseModel):
     assigned_to_id: Optional[str] = None
+    member_ids: Optional[List[str]] = None
 
 
 class ProjectMemberCreate(BaseModel):

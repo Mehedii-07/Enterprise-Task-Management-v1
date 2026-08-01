@@ -58,13 +58,20 @@ class Task(Base):
     assignee = relationship("User", back_populates="assigned_tasks", foreign_keys=[assignee_id])
     reporter = relationship("User", back_populates="reported_tasks", foreign_keys=[reporter_id])
     
-    subtasks = relationship("Subtask", back_populates="task", cascade="all, delete-orphan")
-    labels = relationship("TaskLabel", secondary=task_label_mapping, back_populates="tasks")
+    subtasks = relationship("Subtask", back_populates="task", cascade="all, delete-orphan", lazy="selectin")
+    labels = relationship("TaskLabel", secondary=task_label_mapping, back_populates="tasks", lazy="selectin")
     comments = relationship("TaskComment", back_populates="task", cascade="all, delete-orphan")
     work_logs = relationship("WorkLog", back_populates="task", cascade="all, delete-orphan")
     
     # Self referential parent/children tasks
     parent_task = relationship("Task", remote_side=[id], backref="child_tasks")
+
+    @property
+    def progress_percentage(self) -> float:
+        if not self.subtasks:
+            return 100.0 if self.status == TaskStatus.COMPLETED else 0.0
+        completed = sum(1 for sub in self.subtasks if sub.is_completed)
+        return (completed / len(self.subtasks)) * 100.0
 
 
 class Subtask(Base):

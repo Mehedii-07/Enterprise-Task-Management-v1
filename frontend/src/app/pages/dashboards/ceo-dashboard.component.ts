@@ -58,6 +58,26 @@ import { FormsModule } from '@angular/forms';
             <span class="value">{{ stats()?.task_analytics?.total_tasks || 0 }}</span>
           </div>
         </div>
+
+        <div class="metric-card glass-card">
+          <div class="icon-wrapper green" style="background: rgba(16, 185, 129, 0.2); color: #34D399;">
+            <span class="material-symbols-outlined">payments</span>
+          </div>
+          <div class="content">
+            <span class="label">Total Revenue</span>
+            <span class="value">{{ (stats()?.total_revenue || 0) | currency:'USD':'symbol':'1.0-0' }}</span>
+          </div>
+        </div>
+
+        <div class="metric-card glass-card">
+          <div class="icon-wrapper amber" style="background: rgba(245, 158, 11, 0.2); color: #FBBF24;">
+            <span class="material-symbols-outlined">account_balance_wallet</span>
+          </div>
+          <div class="content">
+            <span class="label">Remaining Budget</span>
+            <span class="value">{{ (stats()?.total_remaining_budget || 0) | currency:'USD':'symbol':'1.0-0' }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="user-role-breakdown glass-card">
@@ -68,7 +88,7 @@ import { FormsModule } from '@angular/forms';
             <span class="role-count">{{ stats()?.total_admins || 0 }}</span>
           </div>
           <div class="role-stat">
-            <span class="role-title">Team Leads</span>
+            <span class="role-title">Project Leads</span>
             <span class="role-count">{{ stats()?.total_team_leads || 0 }}</span>
           </div>
           <div class="role-stat">
@@ -85,6 +105,10 @@ import { FormsModule } from '@angular/forms';
             <span class="material-symbols-outlined icon">monitoring</span>
             <span>Enterprise Project Progress</span>
           </h3>
+          <button (click)="openCreateEmployeeModal()" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">person_add</span>
+            New Employee
+          </button>
         </div>
         <div class="table-responsive">
           <table class="data-table" style="width: 100%; border-collapse: collapse;">
@@ -105,13 +129,18 @@ import { FormsModule } from '@angular/forms';
                 </td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); font-weight: 500;">{{ p.name }}</td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">
-                  <select
-                    [ngModel]="p.assigned_to_id"
-                    (ngModelChange)="assignProject(p.id, $event)"
-                    style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
-                    <option [ngValue]="null">-- Unassigned --</option>
-                    <option *ngFor="let u of users()" [value]="u.id">{{ u.first_name }} {{ u.last_name }}</option>
-                  </select>
+                  <div class="custom-select-wrapper" style="position: relative;">
+                    <div class="select-trigger" (click)="toggleDropdown(p.id)" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                      <span>{{ getAssignedMemberIds(p).length === 0 ? 'Unassigned' : getAssignedMemberIds(p).length + ' Assigned' }}</span>
+                      <span class="material-symbols-outlined" style="font-size: 16px;">expand_more</span>
+                    </div>
+                    <div class="dropdown-menu" *ngIf="openDropdowns[p.id]" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 50; margin-top: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                      <label *ngFor="let u of users()" style="display: flex; align-items: center; padding: 8px 12px; cursor: pointer;" class="dropdown-item">
+                        <input type="checkbox" [checked]="getAssignedMemberIds(p).includes(u.id)" (change)="toggleMember(p, u.id)" style="margin-right: 8px; accent-color: var(--accent-primary);">
+                        <span style="font-size: 0.85rem; color: var(--text-primary);">{{ u.first_name }} {{ u.last_name }}</span>
+                      </label>
+                    </div>
+                  </div>
                 </td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">
                   <span class="badge" [class]="'badge-' + (p.status || 'ACTIVE').toLowerCase()">{{ p.status }}</span>
@@ -137,6 +166,40 @@ import { FormsModule } from '@angular/forms';
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Create Employee Modal -->
+      <div class="modal-overlay" *ngIf="showCreateEmployeeModal">
+        <div class="modal-content glass-card" style="width: 400px;">
+          <h3 style="margin-bottom: 20px;">Create New Employee</h3>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">First Name</label>
+              <input type="text" [(ngModel)]="newEmployee.first_name" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Last Name</label>
+              <input type="text" [(ngModel)]="newEmployee.last_name" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Email</label>
+              <input type="email" [(ngModel)]="newEmployee.email" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Assign to Project (Optional)</label>
+              <select [(ngModel)]="newEmployee.project_id" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
+                <option [ngValue]="null">-- None --</option>
+                <option *ngFor="let p of stats()?.active_projects" [value]="p.id">{{ p.name }}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button class="btn btn-secondary" (click)="showCreateEmployeeModal = false">Cancel</button>
+            <button class="btn btn-primary" (click)="createEmployee()" [disabled]="!newEmployee.first_name || !newEmployee.last_name || !newEmployee.email">Create</button>
+          </div>
         </div>
       </div>
     </div>
@@ -213,6 +276,26 @@ import { FormsModule } from '@angular/forms';
         }
       }
     }
+    
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: var(--bg-main);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+    .dropdown-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
   `]
 })
 export class CEODashboardComponent implements OnInit {
@@ -244,12 +327,39 @@ export class CEODashboardComponent implements OnInit {
     });
   }
 
-  assignProject(projectId: string, employeeId: string | null) {
-    this.api.patch('/projects/' + projectId + '/assign', { assigned_to_id: employeeId }).subscribe({
+  getAssignedMemberIds(project: any): string[] {
+    if (!project || !project.members) return [];
+    return project.members
+      .filter((m: any) => m.role_in_project === 'MEMBER')
+      .map((m: any) => m.user_id);
+  }
+
+  assignProject(projectId: string, employeeIds: string[]) {
+    this.api.patch('/projects/' + projectId + '/assign', { member_ids: employeeIds }).subscribe({
       next: () => {
         this.loadDashboard();
       }
     });
+  }
+
+  openDropdowns: { [key: string]: boolean } = {};
+  
+  toggleDropdown(projectId: string) {
+    // Close others
+    for (let key in this.openDropdowns) {
+      if (key !== projectId) this.openDropdowns[key] = false;
+    }
+    this.openDropdowns[projectId] = !this.openDropdowns[projectId];
+  }
+
+  toggleMember(project: any, userId: string) {
+    let currentIds = this.getAssignedMemberIds(project);
+    if (currentIds.includes(userId)) {
+      currentIds = currentIds.filter((id: string) => id !== userId);
+    } else {
+      currentIds.push(userId);
+    }
+    this.assignProject(project.id, currentIds);
   }
 
   isDownloading: { [key: string]: boolean } = {};
@@ -270,6 +380,56 @@ export class CEODashboardComponent implements OnInit {
         alert('Failed to download project report.');
         this.isDownloading[projectId] = false;
       }
+    });
+  }
+
+  showCreateEmployeeModal = false;
+  newEmployee = {
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: 'Password123!',
+    role_id: 'EMPLOYEE',
+    project_id: null as string | null
+  };
+
+  openCreateEmployeeModal() {
+    this.newEmployee = {
+      first_name: '',
+      last_name: '',
+      email: '',
+      password: 'Password123!',
+      role_id: 'EMPLOYEE',
+      project_id: null
+    };
+    this.showCreateEmployeeModal = true;
+  }
+
+  createEmployee() {
+    this.api.post('/users', {
+      email: this.newEmployee.email,
+      password: this.newEmployee.password,
+      first_name: this.newEmployee.first_name,
+      last_name: this.newEmployee.last_name,
+      role_id: 'EMPLOYEE'
+    }).subscribe({
+      next: (user: any) => {
+        if (this.newEmployee.project_id) {
+          this.assignProject(this.newEmployee.project_id, [user.id]);
+        } else {
+          this.loadDashboard();
+        }
+        this.showCreateEmployeeModal = false;
+        
+        // Refresh users list
+        this.api.get('/users').subscribe({
+          next: (res: any) => {
+            const emps = Array.isArray(res) ? res.filter((u: any) => u.role?.name === 'EMPLOYEE' || u.role_id) : [];
+            this.users.set(emps);
+          }
+        });
+      },
+      error: (err) => alert('Failed to create employee: ' + (err.error?.detail || err.message))
     });
   }
 }

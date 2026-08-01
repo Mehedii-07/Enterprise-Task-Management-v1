@@ -7,7 +7,7 @@ from app.models.organization import Organization, Department
 from app.models.project import Project, ProjectStatus, ProjectMember
 from app.models.task import Task, TaskStatus, TaskPriority, WorkLog
 from app.models.system import AuditLog, ActivityLog
-from app.schemas.dashboard import EmployeeDashboardResponse, TeamLeadDashboardResponse, AdminDashboardResponse, CEODashboardResponse
+from app.schemas.dashboard import EmployeeDashboardResponse, ProjectLeadDashboardResponse, AdminDashboardResponse, CEODashboardResponse
 
 
 class DashboardService:
@@ -16,7 +16,12 @@ class DashboardService:
         now = datetime.utcnow()
         today_start = datetime(now.year, now.month, now.day)
         
-        project_member_subq = db.query(Project.id).filter(Project.assigned_to_id == user.id).subquery()
+        project_member_subq = db.query(Project.id).outerjoin(ProjectMember).filter(
+            or_(
+                Project.assigned_to_id == user.id,
+                ProjectMember.user_id == user.id
+            )
+        )
         
         assigned_tasks = db.query(Task).filter(
             or_(
@@ -64,9 +69,12 @@ class DashboardService:
         completed_team_tasks = len([t for t in org_tasks if t.status == TaskStatus.COMPLETED])
         team_progress_pct = round((completed_team_tasks / total_team_tasks * 100), 2) if total_team_tasks > 0 else 100.0
 
-        assigned_projects = db.query(Project).filter(
+        assigned_projects = db.query(Project).outerjoin(ProjectMember).filter(
             Project.organization_id == user.organization_id,
-            Project.assigned_to_id == user.id
+            or_(
+                Project.assigned_to_id == user.id,
+                ProjectMember.user_id == user.id
+            )
         ).all()
 
         return {
@@ -93,11 +101,13 @@ class DashboardService:
                 "pending_team_tasks": total_team_tasks - completed_team_tasks,
                 "team_progress_percentage": team_progress_pct,
                 "leaderboard": []
-            }
+            },
+            "total_revenue": sum(p.budget for p in assigned_projects if p.status == ProjectStatus.COMPLETED and p.budget),
+            "total_remaining_budget": sum(p.budget for p in assigned_projects if p.status != ProjectStatus.COMPLETED and p.budget)
         }
 
     @staticmethod
-    def get_team_lead_dashboard(db: Session, user: User) -> Dict[str, Any]:
+    def get_project_lead_dashboard(db: Session, user: User) -> ProjectLeadDashboardResponse:
         now = datetime.utcnow()
         team_members_count = db.query(User).filter(User.organization_id == user.organization_id, User.department_id == user.department_id).count()
         active_projects_count = db.query(Project).filter(Project.organization_id == user.organization_id, Project.status == ProjectStatus.ACTIVE).count()
@@ -113,6 +123,8 @@ class DashboardService:
         recent_team_tasks = db.query(Task).join(Project).filter(Project.organization_id == user.organization_id).order_by(Task.created_at.desc()).limit(10).all()
         active_projects = db.query(Project).filter(Project.organization_id == user.organization_id, Project.status == ProjectStatus.ACTIVE).all()
 
+        all_projects = db.query(Project).filter(Project.organization_id == user.organization_id).all()
+        
         return {
             "team_size": team_members_count,
             "active_projects_count": active_projects_count,
@@ -125,7 +137,9 @@ class DashboardService:
             "recent_team_tasks": recent_team_tasks,
             "team_leaderboard": [],
             "active_projects": active_projects,
-            "project_progress": []
+            "project_progress": [],
+            "total_revenue": sum(p.budget for p in all_projects if p.status == ProjectStatus.COMPLETED and p.budget),
+            "total_remaining_budget": sum(p.budget for p in all_projects if p.status != ProjectStatus.COMPLETED and p.budget)
         }
 
     @staticmethod
@@ -134,7 +148,7 @@ class DashboardService:
         org_id = user.organization_id
         
         total_employees = db.query(User).join(Role).filter(User.organization_id == org_id, Role.name == RoleType.EMPLOYEE.value).count()
-        total_team_leads = db.query(User).join(Role).filter(User.organization_id == org_id, Role.name == RoleType.TEAM_LEAD.value).count()
+        total_team_leads = db.query(User).join(Role).filter(User.organization_id == org_id, Role.name == RoleType.PROJECT_LEAD.value).count()
         
         projects = db.query(Project).filter(Project.organization_id == org_id).all()
         active_projects = len([p for p in projects if p.status == ProjectStatus.ACTIVE])
@@ -173,7 +187,9 @@ class DashboardService:
             "monthly_productivity": [],
             "organization_performance_score": 92.4,
             "employee_ranking": [],
-            "late_task_statistics": {"total_late": len([t for t in tasks if t.due_date and t.due_date < now and t.status != TaskStatus.COMPLETED])}
+            "late_task_statistics": {"total_late": len([t for t in tasks if t.due_date and t.due_date < now and t.status != TaskStatus.COMPLETED])},
+            "total_revenue": sum(p.budget for p in projects if p.status == ProjectStatus.COMPLETED and p.budget),
+            "total_remaining_budget": sum(p.budget for p in projects if p.status != ProjectStatus.COMPLETED and p.budget)
         }
 
     @staticmethod
@@ -183,7 +199,7 @@ class DashboardService:
         total_organizations = db.query(Organization).count()
         total_users = db.query(User).count()
         total_admins = db.query(User).join(Role).filter(Role.name == RoleType.ADMIN.value).count()
-        total_team_leads = db.query(User).join(Role).filter(Role.name == RoleType.TEAM_LEAD.value).count()
+        total_team_leads = db.query(User).join(Role).filter(Role.name == RoleType.PROJECT_LEAD.value).count()
         total_employees = db.query(User).join(Role).filter(Role.name == RoleType.EMPLOYEE.value).count()
         
         projects = db.query(Project).all()
@@ -191,6 +207,9 @@ class DashboardService:
         completed_projects = len([p for p in projects if p.status == ProjectStatus.COMPLETED])
         pending_projects = len([p for p in projects if p.status in [ProjectStatus.PLANNING, ProjectStatus.ACTIVE, ProjectStatus.ON_HOLD]])
         overdue_projects = len([p for p in projects if p.end_date and p.end_date < now and p.status != ProjectStatus.COMPLETED])
+
+        total_revenue = sum(p.budget for p in projects if p.status == ProjectStatus.COMPLETED and p.budget)
+        total_remaining_budget = sum(p.budget for p in projects if p.status != ProjectStatus.COMPLETED and p.budget)
 
         return {
             "total_organizations": total_organizations,
@@ -210,5 +229,7 @@ class DashboardService:
             "project_analytics": {"total_projects": total_projects},
             "login_statistics": {"active_sessions": db.query(User).filter(User.is_active == True).count()},
             "organization_comparison": [],
-            "recent_audit_logs": []
+            "recent_audit_logs": [],
+            "total_revenue": total_revenue,
+            "total_remaining_budget": total_remaining_budget
         }

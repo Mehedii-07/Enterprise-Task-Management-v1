@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.api.deps import require_team_lead, require_admin, require_ceo, get_current_user, require_authenticated
+from app.api.deps import require_project_lead, require_admin, require_ceo, get_current_user, require_authenticated
 from app.models.user import User
 from app.models.project import ProjectStatus, ProjectPriority
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectMilestoneCreate, ProjectMilestoneResponse, ProjectAssignRequest, MilestoneToggleRequest
@@ -86,7 +86,7 @@ def add_milestone(
     project_id: str,
     data: ProjectMilestoneCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_team_lead)
+    current_user: User = Depends(require_project_lead)
 ):
     return ProjectService.add_milestone(db, project_id, data, current_user)
 
@@ -132,7 +132,8 @@ def export_project_pdf(
     # Check authorization based on role
     role = current_user.role.name if current_user.role else ""
     if role not in ["CEO", "ADMIN"]:
-        if project.assigned_to_id != current_user.id:
+        is_member = any(m.user_id == current_user.id for m in project.members)
+        if project.assigned_to_id != current_user.id and not is_member:
             raise HTTPException(status_code=403, detail="You do not have permission to export this project's report.")
             
     pdf_buffer = PdfService.generate_project_report(project)

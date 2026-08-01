@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.api.deps import get_current_user, require_team_lead, require_admin, require_ceo
+from app.api.deps import get_current_user, require_project_lead, require_admin, require_ceo
 from app.models.user import User
-from app.schemas.dashboard import EmployeeDashboardResponse, TeamLeadDashboardResponse, AdminDashboardResponse, CEODashboardResponse
+from app.schemas.dashboard import EmployeeDashboardResponse, ProjectLeadDashboardResponse, AdminDashboardResponse, CEODashboardResponse
 from app.services.dashboard_service import DashboardService
 
 router = APIRouter(prefix="/dashboards", tags=["Dashboards & Analytics"])
@@ -17,12 +17,12 @@ def get_employee_dashboard(
     return DashboardService.get_employee_dashboard(db, current_user)
 
 
-@router.get("/team-lead", response_model=TeamLeadDashboardResponse)
-def get_team_lead_dashboard(
+@router.get("/project-lead", response_model=ProjectLeadDashboardResponse)
+def get_project_lead_dashboard(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_team_lead)
+    current_user: User = Depends(require_project_lead)
 ):
-    return DashboardService.get_team_lead_dashboard(db, current_user)
+    return DashboardService.get_project_lead_dashboard(db, current_user)
 
 
 @router.get("/admin", response_model=AdminDashboardResponse)

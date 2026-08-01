@@ -60,5 +60,5 @@ class RoleChecker:
 # Role-specific dependency shortcuts
 require_ceo = RoleChecker([RoleType.CEO.value])
 require_admin = RoleChecker([RoleType.CEO.value, RoleType.ADMIN.value])
-require_team_lead = RoleChecker([RoleType.CEO.value, RoleType.ADMIN.value, RoleType.TEAM_LEAD.value])
-require_authenticated = RoleChecker([RoleType.CEO.value, RoleType.ADMIN.value, RoleType.TEAM_LEAD.value, RoleType.EMPLOYEE.value])
+require_project_lead = RoleChecker([RoleType.CEO.value, RoleType.ADMIN.value, RoleType.PROJECT_LEAD.value])
+require_authenticated = RoleChecker([RoleType.CEO.value, RoleType.ADMIN.value, RoleType.PROJECT_LEAD.value, RoleType.EMPLOYEE.value])

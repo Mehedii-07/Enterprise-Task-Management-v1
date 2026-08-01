@@ -1,7 +1,9 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.models.project import Project, ProjectMember, ProjectMilestone, ProjectStatus, ProjectPriority, ProjectPhase
 from app.models.user import User, RoleType, Role
+from app.models.task import TaskStatus
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectMilestoneCreate, ProjectAssignRequest, MilestoneToggleRequest
 from app.core.exceptions import EntityNotFoundException, PermissionDeniedException
 
@@ -24,12 +26,18 @@ class ProjectService:
             pass  # Unrestricted global access
         elif role == RoleType.ADMIN.value:
             query = query.filter(Project.organization_id == user.organization_id)
-        elif role == RoleType.TEAM_LEAD.value:
-            query = query.filter(Project.organization_id == user.organization_id).join(ProjectMember).filter(ProjectMember.user_id == user.id)
-        elif role == RoleType.EMPLOYEE.value:
-            query = query.filter(Project.organization_id == user.organization_id).join(
-                ProjectMember, ProjectMember.project_id == Project.id
-            ).filter(ProjectMember.user_id == user.id)
+        elif role == RoleType.PROJECT_LEAD.value:
+            query = query.join(ProjectMember).filter(Project.organization_id == user.organization_id, ProjectMember.user_id == user.id)
+        else:
+            from app.models.task import Task
+            query = query.outerjoin(ProjectMember).outerjoin(Task, Task.project_id == Project.id).filter(
+                Project.organization_id == user.organization_id,
+                or_(
+                    Project.assigned_to_id == user.id,
+                    ProjectMember.user_id == user.id,
+                    Task.assignee_id == user.id
+                )
+            ).distinct()
             
         if status:
             query = query.filter(Project.status == status)
@@ -76,10 +84,10 @@ class ProjectService:
         pm = ProjectMember(project_id=project.id, user_id=project.manager_id, role_in_project="MANAGER")
         db.add(pm)
 
-        # Auto-add ALL Team Leads in the same organization as LEAD members
+        # Auto-add ALL Project Leads in the same organization as LEAD members
         team_leads = db.query(User).join(User.role).filter(
             User.organization_id == org_id,
-            User.role.has(name=RoleType.TEAM_LEAD.value)
+            User.role.has(name=RoleType.PROJECT_LEAD.value)
         ).all()
         existing_ids = {project.manager_id}
         for lead in team_leads:
@@ -102,12 +110,13 @@ class ProjectService:
         project = ProjectService.get_project_by_id(db, project_id, user)
         
         role = user.role.name.upper()
-        if role == RoleType.TEAM_LEAD.value:
+        if role == RoleType.PROJECT_LEAD.value:
             is_member = any(m.user_id == user.id for m in project.members)
             if not is_member:
                 raise PermissionDeniedException("You can only update projects you are assigned to.")
         elif role == RoleType.EMPLOYEE.value:
-            if project.assigned_to_id != user.id:
+            is_member = any(m.user_id == user.id for m in project.members)
+            if project.assigned_to_id != user.id and not is_member:
                 raise PermissionDeniedException("You can only update projects assigned to you.")
         
         if data.name is not None:
@@ -120,10 +129,14 @@ class ProjectService:
             project.budget = data.budget
         if data.status is not None:
             project.status = data.status
+            if data.status == ProjectStatus.COMPLETED:
+                project.phase = ProjectPhase.COMPLETED
         if data.priority is not None:
             project.priority = data.priority
         if data.phase is not None:
             project.phase = data.phase
+            if data.phase == ProjectPhase.COMPLETED:
+                project.status = ProjectStatus.COMPLETED
         if data.assigned_to_id is not None:
             project.assigned_to_id = data.assigned_to_id
         if data.manager_id is not None:
@@ -173,7 +186,19 @@ class ProjectService:
     @staticmethod
     def assign_project(db: Session, project_id: str, data: ProjectAssignRequest, user: User) -> Project:
         project = ProjectService.get_project_by_id(db, project_id, user)
-        project.assigned_to_id = data.assigned_to_id
+        if data.assigned_to_id is not None:
+            project.assigned_to_id = data.assigned_to_id
+            
+        if data.member_ids is not None:
+            # Clear previous assigned members
+            db.query(ProjectMember).filter(
+                ProjectMember.project_id == project_id,
+                ProjectMember.role_in_project == "MEMBER"
+            ).delete()
+            
+            for uid in data.member_ids:
+                db.add(ProjectMember(project_id=project_id, user_id=uid, role_in_project="MEMBER"))
+                
         db.commit()
         db.refresh(project)
         return project
@@ -188,7 +213,32 @@ class ProjectService:
         milestone.is_completed = data.is_completed
         if data.project_phase:
             project.phase = data.project_phase
+            if data.project_phase == ProjectPhase.COMPLETED:
+                project.status = ProjectStatus.COMPLETED
             
         db.commit()
         db.refresh(milestone)
+        
+        ProjectService.check_and_auto_complete_project(db, project)
+        
         return milestone
+
+    @staticmethod
+    def check_and_auto_complete_project(db: Session, project: Project):
+        if project.status == ProjectStatus.COMPLETED:
+            return
+            
+        has_tasks = len(project.tasks) > 0
+        has_milestones = len(project.milestones) > 0
+        
+        if not has_tasks and not has_milestones:
+            return
+            
+        tasks_done = all(t.status == TaskStatus.COMPLETED for t in project.tasks) if has_tasks else True
+        milestones_done = all(m.is_completed for m in project.milestones) if has_milestones else True
+        
+        if tasks_done and milestones_done:
+            project.status = ProjectStatus.COMPLETED
+            project.phase = ProjectPhase.COMPLETED
+            db.commit()
+            db.refresh(project)

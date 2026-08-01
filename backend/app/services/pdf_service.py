@@ -176,14 +176,22 @@ class PdfService:
             detailed_data = [["Task", "Status", "Assignee", "Subtask Breakdown"]]
             for t in project.tasks:
                 subtasks_text = []
+                completed_subtasks = 0
                 for st in t.subtasks:
                     check = "[X]" if st.is_completed else "[ ]"
                     fb = f" - {st.feedback}" if st.feedback else ""
                     subtasks_text.append(f"{check} {st.title}{fb}")
+                    if st.is_completed:
+                        completed_subtasks += 1
                 
                 subtasks_str = "\n".join(subtasks_text) if subtasks_text else "No subtasks"
+                
+                total_subtasks = len(t.subtasks)
+                ratio_text = f"{completed_subtasks} / {total_subtasks} completed" if total_subtasks > 0 else ("N/A" if t.status.value != "COMPLETED" else "Completed")
+                progress_pct = f"{t.progress_percentage:.0f}%"
+                
                 detailed_data.append([
-                    t.title,
+                    f"{t.title}\n{ratio_text}\n({progress_pct})",
                     t.status.value,
                     t.assignee.full_name if t.assignee else "Unassigned",
                     subtasks_str

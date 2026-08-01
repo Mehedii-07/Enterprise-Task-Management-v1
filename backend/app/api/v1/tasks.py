@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.api.deps import require_team_lead, get_current_user
+from app.api.deps import require_project_lead, get_current_user
 from app.models.user import User
 from app.models.task import TaskStatus, TaskPriority
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, SubtaskCreate, SubtaskUpdate, SubtaskResponse, TaskCommentCreate, TaskCommentResponse, WorkLogCreate, WorkLogResponse
@@ -32,7 +32,7 @@ def list_tasks(
 def create_task(
     data: TaskCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_team_lead)
+    current_user: User = Depends(require_project_lead)
 ):
     task = TaskService.create_task(db, data, current_user)
     try:
@@ -70,7 +70,7 @@ def update_task(
 def delete_task(
     task_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_team_lead)
+    current_user: User = Depends(require_project_lead)
 ):
     TaskService.delete_task(db, task_id, current_user)
     return MessageResponse(message="Task deleted.")
@@ -82,7 +82,7 @@ def add_subtask(
     task_id: str,
     data: SubtaskCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_team_lead)
+    current_user: User = Depends(require_project_lead)
 ):
     subtask = TaskService.add_subtask(db, task_id, data, current_user)
     try:

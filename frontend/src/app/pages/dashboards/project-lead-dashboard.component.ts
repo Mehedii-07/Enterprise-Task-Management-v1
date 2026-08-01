@@ -5,38 +5,48 @@ import { ApiService } from '../../core/services/api.service';
 import { WebsocketService, WsMessage } from '../../core/services/websocket.service';
 
 @Component({
-  selector: 'app-team-lead-dashboard',
+  selector: 'app-project-lead-dashboard',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="dashboard-page">
       <div class="header-banner glass-card">
         <div>
-          <h2>Team Lead Workspace Dashboard</h2>
-          <p>Monitor Team Execution, Review Deliverables & Track Milestones</p>
+          <h2>Project Lead Workspace Dashboard</h2>
+          <p>Monitor Project Execution, Review Deliverables & Track Milestones</p>
         </div>
-        <span class="badge badge-role">TEAM LEAD</span>
+        <span class="badge badge-role">PROJECT LEAD</span>
       </div>
 
       <div class="metrics-grid">
         <div class="metric-card glass-card">
-          <span class="label">Team Size</span>
+          <span class="label">Project Team Size</span>
           <span class="value">{{ stats()?.team_size || 0 }}</span>
         </div>
 
         <div class="metric-card glass-card">
-          <span class="label">Active Team Projects</span>
+          <span class="label">Active Projects</span>
           <span class="value">{{ stats()?.active_projects_count || 0 }}</span>
         </div>
 
         <div class="metric-card glass-card">
-          <span class="label">Team Tasks Completed</span>
+          <span class="label">Tasks Completed</span>
           <span class="value">{{ stats()?.completed_team_tasks || 0 }} / {{ stats()?.total_team_tasks || 0 }}</span>
         </div>
 
         <div class="metric-card glass-card">
           <span class="label">Completion Rate</span>
           <span class="value">{{ stats()?.team_completion_rate || 0 }}%</span>
+        </div>
+
+        <div class="metric-card glass-card">
+          <span class="label">Total Revenue</span>
+          <span class="value" style="color: #10B981;">{{ (stats()?.total_revenue || 0) | currency:'USD':'symbol':'1.0-0' }}</span>
+        </div>
+
+        <div class="metric-card glass-card">
+          <span class="label">Remaining Budget</span>
+          <span class="value" style="color: #FBBF24;">{{ (stats()?.total_remaining_budget || 0) | currency:'USD':'symbol':'1.0-0' }}</span>
         </div>
       </div>
 
@@ -45,7 +55,7 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
         <div class="section-header">
           <h3>
             <span class="material-symbols-outlined icon">domain</span>
-            <span>Active Team Projects</span>
+            <span>Active Projects</span>
           </h3>
         </div>
         <div class="table-responsive">
@@ -115,7 +125,7 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
     }
   `]
 })
-export class TeamLeadDashboardComponent implements OnInit {
+export class ProjectLeadDashboardComponent implements OnInit {
   api = inject(ApiService);
   ws = inject(WebsocketService);
   stats = signal<any>(null);
@@ -131,7 +141,7 @@ export class TeamLeadDashboardComponent implements OnInit {
   }
 
   loadDashboard() {
-    this.api.get('/dashboards/team-lead').subscribe({
+    this.api.get('/dashboards/project-lead').subscribe({
       next: res => this.stats.set(res)
     });
   }

@@ -46,7 +46,7 @@ class UserService:
             raise EntityNotFoundException("Role", user_data.role_id)
             
         # Role hierarchy check:
-        # Admin can only create TEAM_LEAD and EMPLOYEE in their organization
+        # Admin can only create PROJECT_LEAD and EMPLOYEE in their organization
         creator_role = creator_user.role.name.upper()
         target_role = role.name.upper()
         

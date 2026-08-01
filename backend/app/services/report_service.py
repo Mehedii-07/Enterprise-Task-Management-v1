@@ -33,7 +33,7 @@ class ReportService:
         role = user.role.name.upper()
         if role != RoleType.CEO.value:
             query = query.filter(Project.organization_id == user.organization_id)
-            if role in [RoleType.TEAM_LEAD.value, RoleType.EMPLOYEE.value]:
+            if role in [RoleType.PROJECT_LEAD.value, RoleType.EMPLOYEE.value]:
                 query = query.join(ProjectMember, ProjectMember.project_id == Project.id).filter(ProjectMember.user_id == user.id)
         tasks = query.all()
         report = []
@@ -81,7 +81,7 @@ class ReportService:
             pass
         elif role == RoleType.ADMIN.value:
             query = query.filter(Project.organization_id == user.organization_id)
-        elif role in [RoleType.TEAM_LEAD.value, RoleType.EMPLOYEE.value]:
+        elif role in [RoleType.PROJECT_LEAD.value, RoleType.EMPLOYEE.value]:
             query = query.filter(Project.organization_id == user.organization_id).join(ProjectMember).filter(ProjectMember.user_id == user.id)
             
         projects = query.all()
@@ -116,7 +116,7 @@ class ReportService:
             pass
         elif role == RoleType.ADMIN.value:
             query = query.filter(Project.organization_id == user.organization_id)
-        elif role in [RoleType.TEAM_LEAD.value, RoleType.EMPLOYEE.value]:
+        elif role in [RoleType.PROJECT_LEAD.value, RoleType.EMPLOYEE.value]:
             query = query.filter(Project.organization_id == user.organization_id).join(ProjectMember).filter(ProjectMember.user_id == user.id)
             
         projects = query.all()

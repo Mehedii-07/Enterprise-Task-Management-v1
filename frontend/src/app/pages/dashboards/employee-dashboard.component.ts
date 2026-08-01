@@ -38,6 +38,16 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
           <span class="label">TESTING</span>
           <span class="value text-info">{{ stats()?.testing_count || 0 }}</span>
         </div>
+
+        <div class="metric-card glass-card">
+          <span class="label">Project Revenue</span>
+          <span class="value" style="color: #10B981;">{{ (stats()?.total_revenue || 0) | currency:'USD':'symbol':'1.0-0' }}</span>
+        </div>
+
+        <div class="metric-card glass-card">
+          <span class="label">Remaining Budget</span>
+          <span class="value" style="color: #FBBF24;">{{ (stats()?.total_remaining_budget || 0) | currency:'USD':'symbol':'1.0-0' }}</span>
+        </div>
       </div>
 
       <!-- My Active Workspace -->
@@ -82,6 +92,7 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
                       <option value="In Progress">In Progress</option>
                       <option value="Testing">Testing</option>
                       <option value="Completed">Completed</option>
+                      <option value="On Hold">On Hold</option>
                     </select>
                   </td>
                   <td style="min-width: 150px;">
@@ -140,7 +151,19 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
               <tbody>
                 <tr *ngFor="let task of tasks()">
                   <td><span class="badge badge-role">{{ getProjectCode(task.project_id) }}</span></td>
-                  <td class="font-bold">{{ task.title }}</td>
+                  <td class="font-bold">
+                    <div>{{ task.title }}</div>
+                    <div class="subtasks-list" style="margin-top: 8px; font-weight: normal; font-size: 0.85rem;">
+                      <div *ngFor="let st of task.subtasks" style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <input type="checkbox" [checked]="st.is_completed" (change)="toggleSubtask(task.id, st, $event)" />
+                        <span [class.completed]="st.is_completed">{{ st.title }}</span>
+                      </div>
+                      <div style="display: flex; margin-top: 6px; gap: 4px;">
+                        <input #newSubtask type="text" placeholder="New subtask..." class="status-select" style="padding: 2px 6px; width: 120px;" (keyup.enter)="addSubtask(task.id, newSubtask)">
+                        <button class="btn btn-secondary btn-sm" (click)="addSubtask(task.id, newSubtask)">+</button>
+                      </div>
+                    </div>
+                  </td>
                   <td>
                     <span class="badge" [ngClass]="'priority-' + (task.priority || 'LOW').toLowerCase()">
                       {{ task.priority }}

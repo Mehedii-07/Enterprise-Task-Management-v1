@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import { CEODashboardComponent } from './ceo-dashboard.component';
 import { AdminDashboardComponent } from './admin-dashboard.component';
-import { TeamLeadDashboardComponent } from './team-lead-dashboard.component';
+import { ProjectLeadDashboardComponent } from './project-lead-dashboard.component';
 import { EmployeeDashboardComponent } from './employee-dashboard.component';
 
 @Component({
@@ -13,14 +13,14 @@ import { EmployeeDashboardComponent } from './employee-dashboard.component';
     CommonModule,
     CEODashboardComponent,
     AdminDashboardComponent,
-    TeamLeadDashboardComponent,
+    ProjectLeadDashboardComponent,
     EmployeeDashboardComponent
   ],
   template: `
     <ng-container [ngSwitch]="auth.userRole()">
       <app-ceo-dashboard *ngSwitchCase="'CEO'"></app-ceo-dashboard>
       <app-admin-dashboard *ngSwitchCase="'ADMIN'"></app-admin-dashboard>
-      <app-team-lead-dashboard *ngSwitchCase="'TEAM_LEAD'"></app-team-lead-dashboard>
+      <app-project-lead-dashboard *ngSwitchCase="'PROJECT_LEAD'"></app-project-lead-dashboard>
       <app-employee-dashboard *ngSwitchDefault></app-employee-dashboard>
     </ng-container>
   `

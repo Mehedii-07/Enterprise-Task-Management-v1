@@ -19,6 +19,7 @@ class ProjectPhase(str, PyEnum):
     IN_PROGRESS = "In Progress"
     TESTING = "Testing"
     COMPLETED = "Completed"
+    ON_HOLD = "On Hold"
 
 
 class ProjectPriority(str, PyEnum):
@@ -57,21 +58,36 @@ class Project(Base):
     manager = relationship("User", back_populates="managed_projects", foreign_keys=[manager_id])
     assigned_to = relationship("User", back_populates="assigned_projects", foreign_keys=[assigned_to_id])
     
-    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
-    milestones = relationship("ProjectMilestone", back_populates="project", cascade="all, delete-orphan")
-    tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
+    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    milestones = relationship("ProjectMilestone", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
 
     @property
     def progress_percentage(self) -> float:
-        if self.phase == ProjectPhase.PLANNING:
-            return 25.0
-        elif self.phase == ProjectPhase.IN_PROGRESS:
-            return 50.0
-        elif self.phase == ProjectPhase.TESTING:
-            return 75.0
-        elif self.phase == ProjectPhase.COMPLETED:
+        if self.status == ProjectStatus.COMPLETED or self.phase == ProjectPhase.COMPLETED:
             return 100.0
-        return 0.0
+            
+        has_tasks = len(self.tasks) > 0
+        has_milestones = len(self.milestones) > 0
+        
+        if not has_tasks and not has_milestones:
+            if self.phase == ProjectPhase.PLANNING:
+                return 25.0
+            elif self.phase == ProjectPhase.IN_PROGRESS:
+                return 50.0
+            elif self.phase == ProjectPhase.TESTING:
+                return 75.0
+            return 0.0
+            
+        task_progress = (sum(task.progress_percentage for task in self.tasks) / len(self.tasks)) if has_tasks else 0.0
+        milestone_progress = (sum(100.0 for m in self.milestones if m.is_completed) / len(self.milestones)) if has_milestones else 0.0
+        
+        if has_tasks and has_milestones:
+            return round((task_progress + milestone_progress) / 2.0, 1)
+        elif has_tasks:
+            return round(task_progress, 1)
+        else:
+            return round(milestone_progress, 1)
 
 
 class ProjectMember(Base):

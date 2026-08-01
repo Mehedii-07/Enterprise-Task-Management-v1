@@ -9,7 +9,7 @@ from app.core.database import Base
 class RoleType(str, PyEnum):
     CEO = "CEO"
     ADMIN = "ADMIN"
-    TEAM_LEAD = "TEAM_LEAD"
+    PROJECT_LEAD = "PROJECT_LEAD"
     EMPLOYEE = "EMPLOYEE"
 
 

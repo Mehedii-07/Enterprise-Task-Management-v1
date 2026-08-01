@@ -1,6 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.models.task import Task, Subtask, TaskLabel, TaskComment, WorkLog, TaskStatus, TaskPriority
 from app.models.project import Project
 from app.models.system import Notification
@@ -29,9 +30,15 @@ class TaskService:
             pass
         elif role == RoleType.ADMIN.value:
             query = query.join(Project).filter(Project.organization_id == user.organization_id)
-        elif role in [RoleType.TEAM_LEAD.value, RoleType.EMPLOYEE.value]:
+        elif role in [RoleType.PROJECT_LEAD.value, RoleType.EMPLOYEE.value]:
             from app.models.project import ProjectMember
-            query = query.join(Project).join(ProjectMember, ProjectMember.project_id == Project.id).filter(ProjectMember.user_id == user.id)
+            query = query.join(Project).outerjoin(ProjectMember, ProjectMember.project_id == Project.id).filter(
+                or_(
+                    Task.assignee_id == user.id,
+                    ProjectMember.user_id == user.id,
+                    Project.assigned_to_id == user.id
+                )
+            ).distinct()
 
         if project_id:
             query = query.filter(Task.project_id == project_id)
@@ -131,6 +138,10 @@ class TaskService:
 
         db.commit()
         db.refresh(task)
+        
+        from app.services.project_service import ProjectService
+        ProjectService.check_and_auto_complete_project(db, task.project)
+        
         return task
 
     @staticmethod
@@ -187,6 +198,9 @@ class TaskService:
                 task.status = TaskStatus.IN_PROGRESS
                 db.commit()
                 db.refresh(task)
+                
+            from app.services.project_service import ProjectService
+            ProjectService.check_and_auto_complete_project(db, task.project)
 
         return subtask
 
