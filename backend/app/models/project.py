@@ -49,6 +49,8 @@ class Project(Base):
     
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
+    assign_date = Column(DateTime, nullable=True)
+    delivery_time = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

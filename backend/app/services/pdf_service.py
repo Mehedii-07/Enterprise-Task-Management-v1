@@ -36,6 +36,7 @@ class WatermarkCanvas(canvas.Canvas):
         page_num = self.getPageNumber()
         self.drawString(letter[0] - 1.5 * inch, 0.5 * inch, f"Page {page_num}")
         self.drawString(inch, 0.5 * inch, f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+        self.drawCentredString(letter[0] / 2.0, 0.5 * inch, "Created by Mehedi Hasan")
         
         self.restoreState()
 
@@ -95,7 +96,16 @@ class PdfService:
         elements.append(Paragraph("Executive Overview", h2_style))
         
         assigned_lead = f"{project.manager.first_name} {project.manager.last_name}" if project.manager else "Unassigned"
-        assigned_emp = f"{project.assigned_to.first_name} {project.assigned_to.last_name}" if project.assigned_to else "Unassigned"
+        
+        assigned_members = [m for m in project.members if m.role_in_project == "MEMBER"]
+        if not assigned_members:
+            assigned_emp = "Unassigned"
+        elif len(assigned_members) == 1:
+            assigned_emp = f"{assigned_members[0].user.first_name} {assigned_members[0].user.last_name}"
+        elif len(assigned_members) == 2:
+            assigned_emp = f"{assigned_members[0].user.first_name} & {assigned_members[1].user.first_name}"
+        else:
+            assigned_emp = f"{assigned_members[0].user.first_name} + {len(assigned_members) - 1} others"
         
         overview_data = [
             ["Current Phase:", project.phase.value, "Completion Rate:", f"{project.progress_percentage}%"],

@@ -38,7 +38,8 @@ import { User } from '../../core/models/user.model';
               <tr *ngFor="let user of users()">
                 <td>
                   <div class="user-cell">
-                    <div class="avatar">{{ user.first_name[0] }}{{ user.last_name[0] }}</div>
+                    <img *ngIf="user.avatar_url" [src]="user.avatar_url" alt="Avatar" class="avatar-img">
+                    <div *ngIf="!user.avatar_url" class="avatar">{{ user.first_name[0] }}{{ user.last_name[0] }}</div>
                     <span class="name">{{ user.first_name }} {{ user.last_name }}</span>
                   </div>
                 </td>
@@ -110,6 +111,7 @@ import { User } from '../../core/models/user.model';
     .user-page { display: flex; flex-direction: column; gap: 24px; }
     .page-header { display: flex; justify-content: space-between; align-items: center; }
     .user-cell { display: flex; align-items: center; gap: 12px;
+      .avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
       .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; }
       .name { font-weight: 600; }
     }

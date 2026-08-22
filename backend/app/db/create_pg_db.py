@@ -7,9 +7,9 @@ from app.db.init_db import init_db
 
 def create_postgres_database():
     """Connect to PostgreSQL server and ensure enterprise_task_db exists."""
-    db_name = "enterprise_task_db_anti"
+    db_name = "enterprise_task_db"
     user = "postgres"
-    password = "mehei"
+    password = "mehedi"
     host = "localhost"
     port = "5432"
 

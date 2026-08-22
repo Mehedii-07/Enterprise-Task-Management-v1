@@ -49,7 +49,8 @@ import { Project } from '../../core/models/project.model';
             </div>
             <div class="members-list" *ngIf="project.members && project.members.length > 0">
               <div class="member-chip" *ngFor="let m of project.members" [title]="m.user.first_name + ' ' + m.user.last_name + ' — ' + m.role_in_project">
-                <span class="member-avatar">{{ m.user.first_name[0] }}{{ m.user.last_name[0] }}</span>
+                <img *ngIf="m.user.avatar_url" [src]="m.user.avatar_url" alt="Avatar" class="member-avatar-img">
+                <span *ngIf="!m.user.avatar_url" class="member-avatar">{{ m.user.first_name[0] }}{{ m.user.last_name[0] }}</span>
                 <span class="member-name">{{ m.user.first_name }} {{ m.user.last_name }}</span>
                 <span class="member-role" [class.is-manager]="m.role_in_project === 'MANAGER'">{{ m.role_in_project }}</span>
               </div>
@@ -60,6 +61,16 @@ import { Project } from '../../core/models/project.model';
             </div>
           </div>
 
+          <div class="meta-row">
+            <div class="meta-item">
+              <span class="label">Assign Date</span>
+              <span class="value" style="font-size:0.9rem;">{{ project.assign_date ? (project.assign_date | date:'mediumDate') : 'N/A' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Delivery</span>
+              <span class="value" style="font-size:0.9rem;">{{ project.delivery_time ? (project.delivery_time | date:'mediumDate') : 'N/A' }}</span>
+            </div>
+          </div>
           <div class="meta-row">
             <div class="meta-item">
               <span class="label">Budget</span>
@@ -121,6 +132,16 @@ import { Project } from '../../core/models/project.model';
               <label>Description</label>
               <textarea [(ngModel)]="newProject.description" name="description" rows="2"></textarea>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Assign Date</label>
+                <input type="date" [(ngModel)]="newProject.assign_date" name="assign_date" />
+              </div>
+              <div class="form-group">
+                <label>Delivery Time</label>
+                <input type="date" [(ngModel)]="newProject.delivery_time" name="delivery_time" />
+              </div>
+            </div>
             <div class="form-group">
               <label class="section-label">
                 <span class="material-symbols-outlined">group_add</span>
@@ -129,7 +150,8 @@ import { Project } from '../../core/models/project.model';
               <div class="member-checklist">
                 <label class="check-label" *ngFor="let u of users()">
                   <input type="checkbox" [checked]="newProject.member_ids.includes(u.id)" (change)="toggleMember(newProject.member_ids, u.id, $event)">
-                  <span class="check-avatar">{{ u.first_name[0] }}{{ u.last_name[0] }}</span>
+                  <img *ngIf="u.avatar_url" [src]="u.avatar_url" alt="Avatar" class="check-avatar-img">
+                  <span *ngIf="!u.avatar_url" class="check-avatar">{{ u.first_name[0] }}{{ u.last_name[0] }}</span>
                   <span class="check-name">{{ u.first_name }} {{ u.last_name }}</span>
                   <span class="check-role">{{ u.role?.name }}</span>
                 </label>
@@ -193,6 +215,16 @@ import { Project } from '../../core/models/project.model';
                 <input type="text" [(ngModel)]="editingProject.description" name="edit_description" />
               </div>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Assign Date</label>
+                <input type="date" [(ngModel)]="editingProject.assign_date" name="edit_assign_date" />
+              </div>
+              <div class="form-group">
+                <label>Delivery Time</label>
+                <input type="date" [(ngModel)]="editingProject.delivery_time" name="edit_delivery_time" />
+              </div>
+            </div>
             <div class="form-group">
               <label class="section-label">
                 <span class="material-symbols-outlined">group_add</span>
@@ -201,7 +233,8 @@ import { Project } from '../../core/models/project.model';
               <div class="member-checklist">
                 <label class="check-label" *ngFor="let u of users()">
                   <input type="checkbox" [checked]="editingProject.member_ids?.includes(u.id)" (change)="toggleMember(editingProject.member_ids, u.id, $event)">
-                  <span class="check-avatar">{{ u.first_name[0] }}{{ u.last_name[0] }}</span>
+                  <img *ngIf="u.avatar_url" [src]="u.avatar_url" alt="Avatar" class="check-avatar-img">
+                  <span *ngIf="!u.avatar_url" class="check-avatar">{{ u.first_name[0] }}{{ u.last_name[0] }}</span>
                   <span class="check-name">{{ u.first_name }} {{ u.last_name }}</span>
                   <span class="check-role">{{ u.role?.name }}</span>
                 </label>
@@ -247,6 +280,7 @@ import { Project } from '../../core/models/project.model';
         .member-chip {
           display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 8px;
           background: rgba(255,255,255,0.03); border: 1px solid var(--border-color);
+          .member-avatar-img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
           .member-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-primary); flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #fff; }
           .member-name { font-size: 0.82rem; flex: 1; }
@@ -303,6 +337,7 @@ import { Project } from '../../core/models/project.model';
       &:hover { background: rgba(255,255,255,0.04); }
       input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent-primary); cursor: pointer; flex-shrink: 0; }
     }
+    .check-avatar-img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .check-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-primary);
       display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: #fff; flex-shrink: 0; }
     .check-name { font-size: 0.85rem; flex: 1; }
@@ -330,9 +365,10 @@ export class ProjectListComponent implements OnInit {
   showEditModal = false;
   errorMessage = '';
 
-  newProject = {
+  newProject: any = {
     name: '', code: '', description: '', budget: 50000,
-    priority: 'MEDIUM', status: 'ACTIVE', member_ids: [] as string[]
+    priority: 'MEDIUM', status: 'ACTIVE', member_ids: [] as string[],
+    assign_date: '', delivery_time: ''
   };
   editingProject: any = {};
 
@@ -351,7 +387,8 @@ export class ProjectListComponent implements OnInit {
   }
 
   openCreateModal() {
-    this.newProject = { name: '', code: '', description: '', budget: 50000, priority: 'MEDIUM', status: 'ACTIVE', member_ids: [] };
+    const today = new Date().toISOString().split('T')[0];
+    this.newProject = { name: '', code: '', description: '', budget: 50000, priority: 'MEDIUM', status: 'ACTIVE', member_ids: [], assign_date: today, delivery_time: '' };
     this.errorMessage = '';
     this.showCreateModal = true;
   }
@@ -376,6 +413,8 @@ export class ProjectListComponent implements OnInit {
   openEditModal(project: any) {
     this.editingProject = { ...project };
     this.editingProject.member_ids = project.members ? project.members.map((m: any) => m.user_id) : [];
+    if (this.editingProject.assign_date) this.editingProject.assign_date = this.editingProject.assign_date.split('T')[0];
+    if (this.editingProject.delivery_time) this.editingProject.delivery_time = this.editingProject.delivery_time.split('T')[0];
     this.showEditModal = true;
   }
 

@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.models.user import User, Role, RoleType
 from app.models.organization import Organization, Department
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, UserUpdate, UserProfileUpdate
 from app.core.security import get_password_hash
 from app.core.exceptions import EntityNotFoundException, ResourceAlreadyExistsException, PermissionDeniedException
 
@@ -101,6 +101,33 @@ class UserService:
             role = db.query(Role).filter(Role.id == user_data.role_id).first()
             if role:
                 user.role_id = role.id
+
+        db.commit()
+        db.refresh(user)
+        return user
+
+    @staticmethod
+    def update_my_profile(db: Session, user: User, data: 'UserProfileUpdate') -> User:
+        if data.first_name is not None:
+            user.first_name = data.first_name
+        if data.last_name is not None:
+            user.last_name = data.last_name
+        if data.phone_number is not None:
+            user.phone_number = data.phone_number
+        if data.job_title is not None:
+            user.job_title = data.job_title
+        if data.avatar_url is not None:
+            user.avatar_url = data.avatar_url
+            
+        if data.email is not None and data.email != user.email:
+            # Check if email is already taken
+            existing = db.query(User).filter(User.email == data.email).first()
+            if existing:
+                raise ResourceAlreadyExistsException("Email already registered by another user.")
+            user.email = data.email
+            
+        if data.password:
+            user.hashed_password = get_password_hash(data.password)
 
         db.commit()
         db.refresh(user)

@@ -131,7 +131,7 @@ import { FormsModule } from '@angular/forms';
                 <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">
                   <div class="custom-select-wrapper" style="position: relative;">
                     <div class="select-trigger" (click)="toggleDropdown(p.id)" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                      <span>{{ getAssignedMemberIds(p).length === 0 ? 'Unassigned' : getAssignedMemberIds(p).length + ' Assigned' }}</span>
+                      <span>{{ getAssignedMemberNames(p) }}</span>
                       <span class="material-symbols-outlined" style="font-size: 16px;">expand_more</span>
                     </div>
                     <div class="dropdown-menu" *ngIf="openDropdowns[p.id]" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 50; margin-top: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
@@ -177,15 +177,15 @@ import { FormsModule } from '@angular/forms';
           <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
             <div>
               <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">First Name</label>
-              <input type="text" [(ngModel)]="newEmployee.first_name" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
+              <input type="text" [(ngModel)]="newEmployee.first_name" (keyup.enter)="createEmployee()" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
             </div>
             <div>
               <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Last Name</label>
-              <input type="text" [(ngModel)]="newEmployee.last_name" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
+              <input type="text" [(ngModel)]="newEmployee.last_name" (keyup.enter)="createEmployee()" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
             </div>
             <div>
               <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Email</label>
-              <input type="email" [(ngModel)]="newEmployee.email" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
+              <input type="email" [(ngModel)]="newEmployee.email" (keyup.enter)="createEmployee()" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white;">
             </div>
             <div>
               <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Assign to Project (Optional)</label>
@@ -334,6 +334,15 @@ export class CEODashboardComponent implements OnInit {
       .map((m: any) => m.user_id);
   }
 
+  getAssignedMemberNames(project: any): string {
+    if (!project || !project.members) return 'Unassigned';
+    const members = project.members.filter((m: any) => m.role_in_project === 'MEMBER');
+    if (members.length === 0) return 'Unassigned';
+    if (members.length === 1) return (members[0].user?.first_name || '') + ' ' + (members[0].user?.last_name || '');
+    if (members.length === 2) return (members[0].user?.first_name || '') + ' & ' + (members[1].user?.first_name || '');
+    return (members[0].user?.first_name || '') + ' + ' + (members.length - 1) + ' others';
+  }
+
   assignProject(projectId: string, employeeIds: string[]) {
     this.api.patch('/projects/' + projectId + '/assign', { member_ids: employeeIds }).subscribe({
       next: () => {
@@ -406,6 +415,7 @@ export class CEODashboardComponent implements OnInit {
   }
 
   createEmployee() {
+    if (!this.newEmployee.first_name || !this.newEmployee.last_name || !this.newEmployee.email) return;
     this.api.post('/users', {
       email: this.newEmployee.email,
       password: this.newEmployee.password,

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -75,7 +76,9 @@ class ProjectService:
             phase=data.phase,
             assigned_to_id=data.assigned_to_id,
             start_date=data.start_date,
-            end_date=data.end_date
+            end_date=data.end_date,
+            assign_date=data.assign_date or (datetime.utcnow() if data.member_ids else None),
+            delivery_time=data.delivery_time
         )
         db.add(project)
         db.flush()
@@ -145,6 +148,10 @@ class ProjectService:
             project.start_date = data.start_date
         if data.end_date is not None:
             project.end_date = data.end_date
+        if hasattr(data, 'assign_date') and data.assign_date is not None:
+            project.assign_date = data.assign_date
+        if hasattr(data, 'delivery_time') and data.delivery_time is not None:
+            project.delivery_time = data.delivery_time
             
         if data.member_ids is not None:
             # Clear old members except manager
@@ -188,6 +195,11 @@ class ProjectService:
         project = ProjectService.get_project_by_id(db, project_id, user)
         if data.assigned_to_id is not None:
             project.assigned_to_id = data.assigned_to_id
+            
+        if hasattr(data, 'assign_date') and data.assign_date is not None:
+            project.assign_date = data.assign_date
+        if hasattr(data, 'delivery_time') and data.delivery_time is not None:
+            project.delivery_time = data.delivery_time
             
         if data.member_ids is not None:
             # Clear previous assigned members

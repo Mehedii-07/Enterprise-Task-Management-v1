@@ -4,6 +4,8 @@ from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
 from app.api.v1.router import api_v1_router
 from app.db.init_db import init_db
+from fastapi.staticfiles import StaticFiles
+import os
 
 # Create database tables automatically
 Base.metadata.create_all(bind=engine)
@@ -27,6 +29,10 @@ app.add_middleware(
 
 # Register master API router
 app.include_router(api_v1_router, prefix=settings.API_V1_STR)
+
+# Mount static files for local uploads
+os.makedirs("app/static/avatars", exist_ok=True)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 @app.on_event("startup")

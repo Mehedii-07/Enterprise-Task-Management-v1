@@ -50,6 +50,11 @@ body {
   line-height: 1.5;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  caret-color: transparent; /* Hides blinking cursor from Caret Browsing on normal text */
+}
+
+input, textarea, select, [contenteditable="true"] {
+  caret-color: auto; /* Restores blinking cursor for actual input fields */
 }
 
 h1, h2, h3, h4, h5, h6 {

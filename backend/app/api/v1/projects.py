@@ -37,7 +37,7 @@ def create_project(
 ):
     project = ProjectService.create_project(db, data, current_user)
     try:
-        asyncio.run(manager.broadcast({"event": "PROJECT_CREATED", "project_id": project.id}))
+        asyncio.run(manager.broadcast({"event": "project_created", "project_id": project.id, "title": project.name}))
     except Exception as e:
         print(f"WS error: {e}")
     return project
@@ -61,7 +61,7 @@ def update_project(
 ):
     project = ProjectService.update_project(db, project_id, data, current_user)
     try:
-        asyncio.run(manager.broadcast({"event": "PROJECT_UPDATED", "project_id": project.id}))
+        asyncio.run(manager.broadcast({"event": "project_updated", "project_id": project.id, "title": project.name}))
     except Exception as e:
         print(f"WS error: {e}")
     return project
@@ -75,7 +75,7 @@ def delete_project(
 ):
     ProjectService.delete_project(db, project_id, current_user)
     try:
-        asyncio.run(manager.broadcast({"event": "PROJECT_DELETED", "project_id": project_id}))
+        asyncio.run(manager.broadcast({"event": "project_deleted", "project_id": project_id, "title": "A project"}))
     except Exception as e:
         print(f"WS error: {e}")
     return MessageResponse(message="Project deleted.")
@@ -100,7 +100,28 @@ def assign_project(
 ):
     project = ProjectService.assign_project(db, project_id, data, current_user)
     try:
-        asyncio.run(manager.broadcast({"event": "PROJECT_ASSIGNED", "project_id": project.id}))
+        from app.models.system import Notification
+        target_ids = []
+        if data.member_ids is not None:
+            target_ids = data.member_ids
+            for uid in target_ids:
+                noti = Notification(
+                    user_id=uid,
+                    title="Project Assigned",
+                    message=f"You have been assigned to project: '{project.name}'",
+                    type="PROJECT_ASSIGNED",
+                    link=f"/projects/{project.id}"
+                )
+                db.add(noti)
+            db.commit()
+            
+        asyncio.run(manager.broadcast({
+            "event": "project_assigned", 
+            "project_id": project.id, 
+            "title": project.name,
+            "target_user_ids": target_ids,
+            "message": f"You were assigned to project: <strong>{project.name}</strong>"
+        }))
     except Exception as e:
         print(f"WS error: {e}")
     return project
@@ -116,7 +137,7 @@ def toggle_milestone(
 ):
     milestone = ProjectService.toggle_milestone(db, project_id, milestone_id, data, current_user)
     try:
-        asyncio.run(manager.broadcast({"event": "MILESTONE_TOGGLED", "project_id": project_id}))
+        asyncio.run(manager.broadcast({"event": "project_updated", "project_id": project_id, "title": "A milestone"}))
     except Exception as e:
         print(f"WS error: {e}")
     return milestone

@@ -40,6 +40,16 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class UserProfileUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    phone_number: Optional[str] = None
+    job_title: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+
 class UserResponse(UserBase):
     id: str
     organization_id: Optional[str] = None

@@ -134,7 +134,8 @@ interface ProjectWithTasks {
                     <span class="badge" [ngClass]="'priority-' + task.priority.toLowerCase()">{{ task.priority }}</span>
                     <span class="badge" [ngClass]="'status-' + task.status.toLowerCase()">{{ task.status }}</span>
                     <span *ngIf="task.assignee" class="assignee-chip">
-                      <span class="material-symbols-outlined">person</span>
+                      <img *ngIf="task.assignee.avatar_url" [src]="task.assignee.avatar_url" alt="Avatar" style="width: 16px; height: 16px; border-radius: 50%; object-fit: cover;">
+                      <span *ngIf="!task.assignee.avatar_url" class="material-symbols-outlined">person</span>
                       {{ task.assignee.first_name }} {{ task.assignee.last_name }}
                     </span>
                   </span>

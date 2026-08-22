@@ -32,6 +32,8 @@ class MilestoneToggleRequest(BaseModel):
 class ProjectAssignRequest(BaseModel):
     assigned_to_id: Optional[str] = None
     member_ids: Optional[List[str]] = None
+    assign_date: Optional[datetime] = None
+    delivery_time: Optional[datetime] = None
 
 
 class ProjectMemberCreate(BaseModel):
@@ -58,6 +60,8 @@ class ProjectBase(BaseModel):
     phase: ProjectPhase = ProjectPhase.PLANNING
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    assign_date: Optional[datetime] = None
+    delivery_time: Optional[datetime] = None
 
 
 class ProjectCreate(ProjectBase):
@@ -80,6 +84,8 @@ class ProjectUpdate(BaseModel):
     assigned_to_id: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    assign_date: Optional[datetime] = None
+    delivery_time: Optional[datetime] = None
     member_ids: Optional[List[str]] = None
 
 

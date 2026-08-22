@@ -31,6 +31,8 @@ export interface Project {
   priority: ProjectPriority;
   start_date?: string;
   end_date?: string;
+  assign_date?: string;
+  delivery_time?: string;
   manager?: User;
   members: ProjectMember[];
   milestones: ProjectMilestone[];

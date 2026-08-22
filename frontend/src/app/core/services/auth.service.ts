@@ -47,6 +47,13 @@ export class AuthService {
     );
   }
 
+  updateCurrentUser(partialData: Partial<User>) {
+    const current = this.currentUser();
+    if (current) {
+      this.currentUser.set({ ...current, ...partialData } as User);
+    }
+  }
+
   logout() {
     const refreshToken = localStorage.getItem('refresh_token');
     if (refreshToken) {

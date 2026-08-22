@@ -63,6 +63,7 @@ import { AuthService } from '../../core/services/auth.service';
             <span class="material-symbols-outlined">corporate_fare</span>
             <span>Organizations</span>
           </a>
+
         </ng-container>
       </nav>
 

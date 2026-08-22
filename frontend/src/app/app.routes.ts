@@ -14,7 +14,8 @@ export const routes: Routes = [
       { path: 'tasks', loadComponent: () => import('./pages/tasks/task-board.component').then(m => m.TaskBoardComponent) },
       { path: 'users', loadComponent: () => import('./pages/users/user-management.component').then(m => m.UserManagementComponent), canActivate: [roleGuard(['CEO', 'ADMIN'])] },
       { path: 'reports', loadComponent: () => import('./pages/reports/reports.component').then(m => m.ReportsComponent) },
-      { path: 'subtasks', loadComponent: () => import('./pages/subtasks/subtasks.component').then(m => m.SubtasksComponent) }
+      { path: 'subtasks', loadComponent: () => import('./pages/subtasks/subtasks.component').then(m => m.SubtasksComponent) },
+      { path: 'profile', loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent) }
     ]
   },
   { path: '**', redirectTo: 'dashboard' }

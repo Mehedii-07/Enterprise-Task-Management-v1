@@ -36,7 +36,7 @@ def create_task(
 ):
     task = TaskService.create_task(db, data, current_user)
     try:
-        asyncio.run(manager.broadcast({"event": "TASK_CREATED", "task_id": task.id, "project_id": task.project_id}))
+        asyncio.run(manager.broadcast({"event": "task_assigned", "task_id": task.id, "project_id": task.project_id, "title": task.title}))
     except Exception as e:
         print(f"WS error: {e}")
     return task
@@ -60,7 +60,7 @@ def update_task(
 ):
     task = TaskService.update_task(db, task_id, data, current_user)
     try:
-        asyncio.run(manager.broadcast({"event": "TASK_UPDATED", "task_id": task.id, "project_id": task.project_id}))
+        asyncio.run(manager.broadcast({"event": "task_updated", "task_id": task.id, "project_id": task.project_id, "title": task.title}))
     except Exception as e:
         print(f"WS error: {e}")
     return task
@@ -87,9 +87,31 @@ def add_subtask(
     subtask = TaskService.add_subtask(db, task_id, data, current_user)
     try:
         from app.models.task import Task as TaskModel
+        from app.models.system import Notification
         task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
         project_id = task.project_id if task else None
-        asyncio.run(manager.broadcast({"event": "TASK_UPDATED", "task_id": task_id, "project_id": project_id}))
+        
+        target_ids = []
+        if task and task.assignee_id:
+            target_ids = [task.assignee_id]
+            noti = Notification(
+                user_id=task.assignee_id,
+                title="Subtask Added",
+                message=f"A new subtask '{subtask.title}' was added to your task '{task.title}'",
+                type="SUBTASK_CREATED",
+                link=f"/tasks/{task.id}"
+            )
+            db.add(noti)
+            db.commit()
+            
+        asyncio.run(manager.broadcast({
+            "event": "subtask_created", 
+            "task_id": task_id, 
+            "project_id": project_id, 
+            "title": task.title if task else 'Unknown Task',
+            "target_user_ids": target_ids,
+            "message": f"New subtask added: <strong>{subtask.title}</strong>"
+        }))
     except Exception as e:
         print(f"WS error: {e}")
     return subtask
@@ -109,7 +131,7 @@ def update_subtask(
         from app.models.task import Task as TaskModel
         task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
         project_id = task.project_id if task else None
-        asyncio.run(manager.broadcast({"event": "TASK_UPDATED", "task_id": task_id, "project_id": project_id}))
+        asyncio.run(manager.broadcast({"event": "task_updated", "task_id": task_id, "project_id": project_id, "title": task.title if task else 'Unknown Task'}))
     except Exception as e:
         print(f"WS error: {e}")
     return subtask
@@ -123,7 +145,15 @@ def add_comment(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return TaskService.add_comment(db, task_id, data, current_user)
+    comment = TaskService.add_comment(db, task_id, data, current_user)
+    try:
+        from app.models.task import Task as TaskModel
+        task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
+        project_id = task.project_id if task else None
+        asyncio.run(manager.broadcast({"event": "task_comment", "task_id": task_id, "project_id": project_id, "title": task.title if task else 'Unknown Task'}))
+    except Exception as e:
+        print(f"WS error: {e}")
+    return comment
 
 
 # Work logs

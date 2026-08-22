@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -23,7 +23,7 @@ import { Project } from '../../core/models/project.model';
           <div class="filter-group">
             <select [(ngModel)]="selectedProjectId" (ngModelChange)="loadTasks()" class="project-filter">
               <option value="">All Projects</option>
-              <option *ngFor="let p of projects()" [value]="p.id">{{ p.name }} ({{ p.code }})</option>
+              <option *ngFor="let p of projects(); trackBy: trackByProjectId" [value]="p.id">{{ p.name }} ({{ p.code }})</option>
             </select>
           </div>
           <a routerLink="/projects" class="btn btn-secondary">
@@ -39,17 +39,17 @@ import { Project } from '../../core/models/project.model';
 
       <!-- Kanban Columns -->
       <div class="kanban-board">
-        <div class="kanban-column" *ngFor="let col of columns">
+        <div class="kanban-column" *ngFor="let col of columns; trackBy: trackByColStatus">
           <div class="column-header">
             <span class="col-title">{{ col.label }}</span>
-            <span class="col-count">{{ getTasksByStatus(col.status).length }}</span>
+            <span class="col-count">{{ (tasksByStatus()[col.status] || []).length }}</span>
           </div>
 
           <div class="column-body">
-            <div class="task-card glass-card" *ngFor="let task of getTasksByStatus(col.status)">
+            <div class="task-card glass-card" *ngFor="let task of tasksByStatus()[col.status] || []; trackBy: trackByTaskId">
               <div class="task-card-header">
                 <span class="badge" [class]="'badge-' + task.priority.toLowerCase()">{{ task.priority }}</span>
-                <span class="project-tag" style="font-size: 0.7rem; color: #a0a0a0; margin-left: auto;">{{ getProjectName(task.project_id) }}</span>
+                <span class="project-tag" style="font-size: 0.7rem; color: #a0a0a0; margin-left: auto;">{{ projectMap()[task.project_id] || 'Unknown Project' }}</span>
               </div>
               <h4 class="task-title">{{ task.title }}</h4>
               <p class="task-desc" *ngIf="task.description">{{ task.description }}</p>
@@ -59,7 +59,8 @@ import { Project } from '../../core/models/project.model';
                 <span>{{ task.actual_hours }} / {{ task.estimated_hours }} hrs</span>
               </div>
               <div class="assignee-info" *ngIf="task.assignee" style="font-size: 0.75rem; color: var(--accent-primary); display: flex; align-items: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="font-size: 14px;">person</span>
+                <img *ngIf="task.assignee.avatar_url" [src]="task.assignee.avatar_url" alt="Avatar" style="width: 18px; height: 18px; border-radius: 50%; object-fit: cover;">
+                <span *ngIf="!task.assignee.avatar_url" class="material-symbols-outlined" style="font-size: 14px;">person</span>
                 <span>{{ task.assignee.first_name }} {{ task.assignee.last_name }}</span>
               </div>
 
@@ -68,7 +69,7 @@ import { Project } from '../../core/models/project.model';
                 <h5 style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">SUBTASKS ({{ task.subtasks?.length || 0 }})</h5>
                 
                 <div class="subtask-list" style="display: flex; flex-direction: column; gap: 6px;">
-                  <div class="subtask-item" *ngFor="let st of task.subtasks" style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.1); padding: 6px; border-radius: 6px;">
+                  <div class="subtask-item" *ngFor="let st of task.subtasks; trackBy: trackBySubtaskId" style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.1); padding: 6px; border-radius: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                       <input type="checkbox" [checked]="st.is_completed" (change)="toggleSubtask(task.id, st, $event)" [disabled]="!canEditTask(task)">
                       <span [style.text-decoration]="st.is_completed ? 'line-through' : 'none'" [style.opacity]="st.is_completed ? '0.5' : '1'" style="font-size: 0.8rem;">{{ st.title }}</span>
@@ -108,7 +109,7 @@ import { Project } from '../../core/models/project.model';
             <div class="form-group">
               <label>Select Project</label>
               <select [(ngModel)]="newTask.project_id" name="project_id" required>
-                <option *ngFor="let p of projects()" [value]="p.id">{{ p.name }} ({{ p.code }})</option>
+                <option *ngFor="let p of projects(); trackBy: trackByProjectId" [value]="p.id">{{ p.name }} ({{ p.code }})</option>
               </select>
             </div>
 
@@ -121,7 +122,7 @@ import { Project } from '../../core/models/project.model';
               <label>Assignee</label>
               <select [(ngModel)]="newTask.assignee_id" name="assignee_id">
                 <option value="">Unassigned</option>
-                <option *ngFor="let u of users()" [value]="u.id">{{ u.first_name }} {{ u.last_name }} ({{ u.role.name }})</option>
+                <option *ngFor="let u of users(); trackBy: trackByUserId" [value]="u.id">{{ u.first_name }} {{ u.last_name }} ({{ u.role.name }})</option>
               </select>
             </div>
 
@@ -260,6 +261,30 @@ export class TaskBoardComponent implements OnInit {
   showCreateModal = false;
   selectedProjectId: string = '';
 
+  // Performance Optimization: Compute tasks by status once instead of every change detection cycle
+  tasksByStatus = computed(() => {
+    const activeProjectIds = new Set(this.projects().map(p => p.id));
+    const grouped: Record<string, Task[]> = {
+      'TODO': [], 'IN_PROGRESS': [], 'REVIEW': [], 'TESTING': [], 'COMPLETED': [], 'CANCELLED': []
+    };
+    for (const t of this.tasks()) {
+      if (activeProjectIds.has(t.project_id)) {
+        if (!grouped[t.status]) grouped[t.status] = [];
+        grouped[t.status].push(t);
+      }
+    }
+    return grouped;
+  });
+
+  // Performance Optimization: O(1) project name lookup
+  projectMap = computed(() => {
+    const map: Record<string, string> = {};
+    for (const p of this.projects()) {
+      map[p.id] = p.name;
+    }
+    return map;
+  });
+
   columns = [
     { label: 'TODO', status: 'TODO' },
     { label: 'IN PROGRESS', status: 'IN_PROGRESS' },
@@ -277,6 +302,12 @@ export class TaskBoardComponent implements OnInit {
     description: '',
     assignee_id: ''
   };
+
+  trackByProjectId(index: number, project: Project): string { return project.id; }
+  trackByUserId(index: number, user: any): string { return user.id; }
+  trackByColStatus(index: number, col: any): string { return col.status; }
+  trackByTaskId(index: number, task: Task): string { return task.id; }
+  trackBySubtaskId(index: number, st: any): string { return st.id; }
 
   ngOnInit() {
     this.loadTasks();
@@ -307,16 +338,6 @@ export class TaskBoardComponent implements OnInit {
     this.api.get<Task[]>(url).subscribe({
       next: res => this.tasks.set(res)
     });
-  }
-
-  getTasksByStatus(status: string): Task[] {
-    const activeProjectIds = new Set(this.projects().map(p => p.id));
-    return this.tasks().filter(t => t.status === status && activeProjectIds.has(t.project_id));
-  }
-
-  getProjectName(projectId: string): string {
-    const p = this.projects().find(p => p.id === projectId);
-    return p ? p.name : 'Unknown Project';
   }
 
   updateTaskStatus(task: Task, newStatus: TaskStatus) {
