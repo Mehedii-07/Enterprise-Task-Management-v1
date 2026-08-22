@@ -37,6 +37,25 @@ def get_current_user(
     return user
 
 
+async def get_current_user_ws(token: str, db: Session) -> Optional[User]:
+    """Validate token and return user for websockets (without raising HTTPException)."""
+    try:
+        payload = decode_token(token)
+        if not payload or payload.get("type") != "access":
+            return None
+        
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+            
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or not user.is_active:
+            return None
+            
+        return user
+    except Exception:
+        return None
+
 class RoleChecker:
     """Dependency for RBAC enforcement."""
     def __init__(self, allowed_roles: List[str]):

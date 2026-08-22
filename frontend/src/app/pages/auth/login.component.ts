@@ -18,7 +18,7 @@ import { AuthService } from '../../core/services/auth.service';
       <div class="auth-card glass-card-3d">
         <div class="brand-header">
           <div class="logo">
-            <span class="material-symbols-outlined">dataset</span>
+            <img src="/pj.webp" alt="Logo" class="custom-logo-img" />
           </div>
           <h2>Enterprise Task Manager</h2>
           <p>Multi-tenant SaaS Workspace Login</p>
@@ -78,7 +78,8 @@ import { AuthService } from '../../core/services/auth.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0B0F19;
+      background: #0B0F19 url('/background photo.webp') no-repeat center center;
+      background-size: cover;
       padding: 20px;
       position: relative;
       overflow: hidden;
@@ -180,6 +181,13 @@ import { AuthService } from '../../core/services/auth.service';
         color: #fff;
         box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3), inset 2px 2px 5px rgba(255,255,255,0.3);
         transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        overflow: hidden;
+      }
+      
+      .logo .custom-logo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
       
       .logo:hover {

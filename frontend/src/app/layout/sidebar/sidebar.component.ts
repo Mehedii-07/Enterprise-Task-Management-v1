@@ -11,7 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
     <aside class="sidebar">
       <div class="brand">
         <div class="logo-icon">
-          <span class="material-symbols-outlined">dataset</span>
+          <img src="/pj.webp" alt="Logo" class="custom-logo-img" />
         </div>
         <div class="brand-text">
           <h3>Enterprise</h3>
@@ -48,6 +48,11 @@ import { AuthService } from '../../core/services/auth.service';
         <a routerLink="/subtasks" routerLinkActive="active" class="nav-item">
           <span class="material-symbols-outlined">checklist</span>
           <span>Subtask Progress</span>
+        </a>
+
+        <a routerLink="/chat" routerLinkActive="active" class="nav-item">
+          <span class="material-symbols-outlined">forum</span>
+          <span>General Chat</span>
         </a>
 
         <!-- Admin & CEO items -->
@@ -106,6 +111,13 @@ import { AuthService } from '../../core/services/auth.service';
         align-items: center;
         justify-content: center;
         color: #fff;
+        overflow: hidden;
+      }
+
+      .logo-icon .custom-logo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
       .brand-text {

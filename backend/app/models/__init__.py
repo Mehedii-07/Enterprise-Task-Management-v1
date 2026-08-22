@@ -4,6 +4,7 @@ from app.models.user import User, Role, Permission, role_permissions, RoleType
 from app.models.project import Project, ProjectMember, ProjectMilestone, ProjectStatus, ProjectPriority
 from app.models.task import Task, Subtask, TaskLabel, task_label_mapping, TaskComment, WorkLog, TaskStatus, TaskPriority
 from app.models.system import Attachment, Notification, ActivityLog, AuditLog, RefreshToken, AuthToken
+from app.models.chat import ChatMessage
 
 __all__ = [
     "Base",
@@ -33,4 +34,5 @@ __all__ = [
     "AuditLog",
     "RefreshToken",
     "AuthToken",
+    "ChatMessage",
 ]
