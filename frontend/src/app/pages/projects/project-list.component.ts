@@ -388,7 +388,9 @@ export class ProjectListComponent implements OnInit {
 
   openCreateModal() {
     const today = new Date().toISOString().split('T')[0];
-    this.newProject = { name: '', code: '', description: '', budget: 50000, priority: 'MEDIUM', status: 'ACTIVE', member_ids: [], assign_date: today, delivery_time: '' };
+    const nextNum = (this.projects().length + 1).toString().padStart(3, '0');
+    const autoCode = `PRJ-${nextNum}`;
+    this.newProject = { name: '', code: autoCode, description: '', budget: 50000, priority: 'MEDIUM', status: 'ACTIVE', member_ids: [], assign_date: today, delivery_time: '' };
     this.errorMessage = '';
     this.showCreateModal = true;
   }

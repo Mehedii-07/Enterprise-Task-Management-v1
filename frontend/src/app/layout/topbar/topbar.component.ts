@@ -58,6 +58,7 @@ import { Subscription } from 'rxjs';
                   <div class="indicators" *ngIf="day.date">
                     <span class="dot assign-dot" *ngIf="day.hasAssign" [title]="day.assignProjects"></span>
                     <span class="dot delivery-dot" *ngIf="day.hasDelivery" [title]="day.deliveryProjects"></span>
+                    <span class="dot task-dot" *ngIf="day.hasTaskDue" [title]="day.taskDueTitles"></span>
                   </div>
                 </div>
               </div>
@@ -66,6 +67,7 @@ import { Subscription } from 'rxjs';
             <div class="calendar-legend">
               <div class="legend-item"><span class="dot assign-dot"></span> Assigned</div>
               <div class="legend-item"><span class="dot delivery-dot"></span> Due</div>
+              <div class="legend-item"><span class="dot task-dot"></span> Task</div>
             </div>
           </div>
         </div>
@@ -571,6 +573,7 @@ import { Subscription } from 'rxjs';
     .dot { width: 6px; height: 6px; border-radius: 50%; }
     .assign-dot { background: var(--accent-primary); box-shadow: 0 0 4px var(--accent-primary); }
     .delivery-dot { background: #EF4444; box-shadow: 0 0 4px #EF4444; }
+    .task-dot { background: #F59E0B; box-shadow: 0 0 4px #F59E0B; }
     
     .calendar-legend {
       display: flex; justify-content: center; gap: 16px;
@@ -594,6 +597,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
   projectsToday = signal<number>(0);
 
   projects: any[] = [];
+  tasks: any[] = [];
   calendarDays: any[] = [];
   currentMonth: Date = new Date();
 
@@ -614,6 +618,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadProjects();
+    this.loadTasks();
     this.generateCalendar();
     this.sub = this.ws.messages$.subscribe(msg => {
       let newNotif = null;
@@ -766,6 +771,16 @@ export class TopbarComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadTasks() {
+    this.api.get<any[]>('/tasks').subscribe({
+      next: res => {
+        this.tasks = res;
+        this.generateCalendar();
+      },
+      error: () => {}
+    });
+  }
+
   checkTodayProjects() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -824,14 +839,27 @@ export class TopbarComponent implements OnInit, OnDestroy {
           const ad = new Date(p.assign_date);
           if (ad.getFullYear() === year && ad.getMonth() === month && ad.getDate() === i) {
             hasAssign = true;
-            assignProjects += p.name + '\\n';
+            assignProjects += p.name + '\n';
           }
         }
         if (p.delivery_time) {
           const dd = new Date(p.delivery_time);
           if (dd.getFullYear() === year && dd.getMonth() === month && dd.getDate() === i) {
             hasDelivery = true;
-            deliveryProjects += p.name + '\\n';
+            deliveryProjects += p.name + '\n';
+          }
+        }
+      });
+
+      // Map task due dates
+      let hasTaskDue = false;
+      let taskDueTitles = '';
+      this.tasks.forEach(t => {
+        if (t.due_date) {
+          const td = new Date(t.due_date);
+          if (td.getFullYear() === year && td.getMonth() === month && td.getDate() === i) {
+            hasTaskDue = true;
+            taskDueTitles += t.title + '\n';
           }
         }
       });
@@ -841,8 +869,10 @@ export class TopbarComponent implements OnInit, OnDestroy {
         isToday: d.getTime() === today.getTime(),
         hasAssign,
         hasDelivery,
-        assignProjects: assignProjects ? 'Assigned:\\n' + assignProjects : '',
-        deliveryProjects: deliveryProjects ? 'Due:\\n' + deliveryProjects : ''
+        hasTaskDue,
+        assignProjects: assignProjects ? 'Assigned:\n' + assignProjects : '',
+        deliveryProjects: deliveryProjects ? 'Due:\n' + deliveryProjects : '',
+        taskDueTitles: taskDueTitles ? 'Tasks Due:\n' + taskDueTitles : ''
       });
     }
   }

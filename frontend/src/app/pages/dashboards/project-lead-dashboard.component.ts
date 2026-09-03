@@ -40,13 +40,13 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
         </div>
 
         <div class="metric-card glass-card">
-          <span class="label">Total Revenue</span>
-          <span class="value" style="color: #10B981;">{{ (stats()?.total_revenue || 0) | currency:'USD':'symbol':'1.0-0' }}</span>
+          <span class="label">Pending Tasks</span>
+          <span class="value" style="color: #F59E0B;">{{ stats()?.pending_team_tasks || 0 }}</span>
         </div>
 
         <div class="metric-card glass-card">
-          <span class="label">Remaining Budget</span>
-          <span class="value" style="color: #FBBF24;">{{ (stats()?.total_remaining_budget || 0) | currency:'USD':'symbol':'1.0-0' }}</span>
+          <span class="label">Overdue Tasks</span>
+          <span class="value" style="color: #EF4444;">{{ stats()?.overdue_team_tasks || 0 }}</span>
         </div>
       </div>
 

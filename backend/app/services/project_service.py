@@ -62,7 +62,13 @@ class ProjectService:
     @staticmethod
     def create_project(db: Session, data: ProjectCreate, creator: User) -> Project:
         org_id = creator.organization_id if creator.role.name.upper() != RoleType.CEO.value else (data.organization_id or creator.organization_id)
-        
+
+        # Auto-generate code if blank
+        code = (data.code or '').strip()
+        if not code:
+            count = db.query(Project).count()
+            code = f"PRJ-{str(count + 1).zfill(4)}"
+
         project = Project(
             organization_id=org_id,
             department_id=data.department_id,
@@ -240,14 +246,23 @@ class ProjectService:
         if project.status == ProjectStatus.COMPLETED:
             return
             
-        has_tasks = len(project.tasks) > 0
-        has_milestones = len(project.milestones) > 0
+        from app.models.task import Task
+        from app.models.project import ProjectMilestone
+        
+        total_tasks = db.query(Task).filter(Task.project_id == project.id).count()
+        completed_tasks = db.query(Task).filter(Task.project_id == project.id, Task.status == TaskStatus.COMPLETED).count()
+        
+        total_milestones = db.query(ProjectMilestone).filter(ProjectMilestone.project_id == project.id).count()
+        completed_milestones = db.query(ProjectMilestone).filter(ProjectMilestone.project_id == project.id, ProjectMilestone.is_completed == True).count()
+        
+        has_tasks = total_tasks > 0
+        has_milestones = total_milestones > 0
         
         if not has_tasks and not has_milestones:
             return
             
-        tasks_done = all(t.status == TaskStatus.COMPLETED for t in project.tasks) if has_tasks else True
-        milestones_done = all(m.is_completed for m in project.milestones) if has_milestones else True
+        tasks_done = (completed_tasks == total_tasks) if has_tasks else True
+        milestones_done = (completed_milestones == total_milestones) if has_milestones else True
         
         if tasks_done and milestones_done:
             project.status = ProjectStatus.COMPLETED

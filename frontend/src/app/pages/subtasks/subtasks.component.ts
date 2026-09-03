@@ -580,6 +580,10 @@ export class SubtasksComponent implements OnInit {
       next: () => {
         inputEl.value = '';
         this.loadData();
+      },
+      error: (err) => {
+        const msg = err?.error?.detail || err?.message || 'Unknown error';
+        alert(`Failed to create task: ${msg}`);
       }
     });
   }
@@ -588,7 +592,11 @@ export class SubtasksComponent implements OnInit {
     const title = inputEl.value.trim();
     if (!title) return;
     this.api.post(`/tasks/${taskId}/subtasks`, { title, is_completed: false }).subscribe({
-      next: () => { inputEl.value = ''; this.loadData(); }
+      next: () => { inputEl.value = ''; this.loadData(); },
+      error: (err) => {
+        const msg = err?.error?.detail || err?.message || 'Unknown error';
+        alert(`Failed to add subtask: ${msg}`);
+      }
     });
   }
 

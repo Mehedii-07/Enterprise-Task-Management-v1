@@ -261,17 +261,14 @@ export class TaskBoardComponent implements OnInit {
   showCreateModal = false;
   selectedProjectId: string = '';
 
-  // Performance Optimization: Compute tasks by status once instead of every change detection cycle
+  // Group tasks by status — no project filtering here, API already scopes by project_id
   tasksByStatus = computed(() => {
-    const activeProjectIds = new Set(this.projects().map(p => p.id));
     const grouped: Record<string, Task[]> = {
       'TODO': [], 'IN_PROGRESS': [], 'REVIEW': [], 'TESTING': [], 'COMPLETED': [], 'CANCELLED': []
     };
     for (const t of this.tasks()) {
-      if (activeProjectIds.has(t.project_id)) {
-        if (!grouped[t.status]) grouped[t.status] = [];
-        grouped[t.status].push(t);
-      }
+      if (!grouped[t.status]) grouped[t.status] = [];
+      grouped[t.status].push(t);
     }
     return grouped;
   });
@@ -313,9 +310,8 @@ export class TaskBoardComponent implements OnInit {
     this.loadTasks();
     this.api.get<Project[]>('/projects').subscribe({
       next: res => {
-        const activeProjects = res.filter(p => p.status === 'PLANNING' || p.status === 'ACTIVE');
-        this.projects.set(activeProjects);
-        if (activeProjects.length > 0) this.newTask.project_id = activeProjects[0].id;
+        this.projects.set(res);
+        if (res.length > 0) this.newTask.project_id = res[0].id;
       }
     });
 
