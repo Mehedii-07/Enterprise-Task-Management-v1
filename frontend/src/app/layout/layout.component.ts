@@ -11,12 +11,15 @@ import { ChatService } from '../core/services/chat.service';
   imports: [CommonModule, RouterModule, SidebarComponent, TopbarComponent],
   template: `
     <div class="app-layout">
-      <app-sidebar></app-sidebar>
+      <app-sidebar [mobileOpen]="sidebarOpen" (closeMobile)="sidebarOpen = false"></app-sidebar>
+      
       <div class="main-wrapper">
-        <app-topbar></app-topbar>
+        <app-topbar (toggleSidebar)="sidebarOpen = !sidebarOpen"></app-topbar>
+        
         <main class="page-content">
           <router-outlet></router-outlet>
         </main>
+        
         <footer class="app-footer">
           <p>Created by Mehedi Hasan &copy; {{ currentYear }} | Enterprise Task Manager</p>
         </footer>
@@ -38,26 +41,25 @@ import { ChatService } from '../core/services/chat.service';
       display: flex;
       min-height: 100vh;
       position: relative;
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
     }
 
     .main-wrapper {
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-width: 0;
+      width: 100%;
     }
 
     .page-content {
       margin-left: 260px;
       padding: 32px;
       flex: 1;
-      transition: margin-left 0.3s ease;
-    }
-
-    @media (max-width: 1024px) {
-      .page-content {
-        margin-left: 80px;
-        padding: 24px;
-      }
+      min-width: 0;
+      transition: margin-left 0.3s ease, padding 0.3s ease;
     }
 
     .app-footer {
@@ -71,18 +73,44 @@ import { ChatService } from '../core/services/chat.service';
       transition: margin-left 0.3s ease;
     }
 
+    @media (max-width: 1366px) {
+      .page-content {
+        padding: 24px 20px;
+      }
+      .app-footer {
+        padding: 16px 20px;
+      }
+    }
+
     @media (max-width: 1024px) {
+      .page-content {
+        margin-left: 80px;
+        padding: 20px 16px;
+      }
       .app-footer {
         margin-left: 80px;
       }
     }
 
+    @media (max-width: 768px) {
+      .page-content {
+        margin-left: 0;
+        padding: 16px 12px;
+        width: 100%;
+      }
+      .app-footer {
+        margin-left: 0;
+        padding: 16px 12px;
+        font-size: 0.75rem;
+      }
+    }
+
     .floating-chat-btn {
       position: fixed;
-      bottom: 30px;
-      right: 30px;
-      width: 60px;
-      height: 60px;
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
       background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
       border-radius: 50%;
       display: flex;
@@ -91,11 +119,18 @@ import { ChatService } from '../core/services/chat.service';
       cursor: pointer;
       box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
-      z-index: 999;
+      z-index: 85;
       
       &:hover {
-        transform: scale(1.1) translateY(-5px);
+        transform: scale(1.08) translateY(-3px);
         box-shadow: 0 15px 30px rgba(59, 130, 246, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        bottom: 16px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
       }
       
       .icon-wrapper {
@@ -105,21 +140,21 @@ import { ChatService } from '../core/services/chat.service';
         justify-content: center;
         
         .material-symbols-outlined {
-          font-size: 28px;
+          font-size: 26px;
         }
       }
 
       .badge {
         position: absolute;
-        top: -5px;
-        right: -5px;
+        top: -4px;
+        right: -4px;
         background: var(--accent-danger);
         color: white;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: bold;
-        padding: 4px 8px;
+        padding: 3px 6px;
         border-radius: 20px;
-        border: 2px solid var(--bg-body);
+        border: 2px solid var(--bg-card);
         box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
         animation: pulse-badge 2s infinite;
       }
@@ -127,7 +162,7 @@ import { ChatService } from '../core/services/chat.service';
 
     @keyframes pulse-badge {
       0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
       100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
   `]
@@ -136,6 +171,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   currentYear = new Date().getFullYear();
   chatService = inject(ChatService);
   router = inject(Router);
+  sidebarOpen = false;
 
   ngOnInit() {
     this.chatService.connect();

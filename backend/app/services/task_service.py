@@ -92,8 +92,21 @@ class TaskService:
             )
             db.add(noti)
 
+        # If task is created under a project that was COMPLETED, reactivate it!
+        if task.project:
+            from app.models.project import ProjectStatus, ProjectPhase
+            if task.project.status == ProjectStatus.COMPLETED or str(task.project.status).upper() == "COMPLETED":
+                task.project.status = ProjectStatus.ACTIVE
+            if task.project.phase == ProjectPhase.COMPLETED or str(task.project.phase).lower() == "completed":
+                task.project.phase = ProjectPhase.IN_PROGRESS
+
         db.commit()
         db.refresh(task)
+
+        if task.project:
+            from app.services.project_service import ProjectService
+            ProjectService.check_and_auto_complete_project(db, task.project)
+
         return task
 
     @staticmethod
@@ -147,8 +160,12 @@ class TaskService:
     @staticmethod
     def delete_task(db: Session, task_id: str, user: User):
         task = TaskService.get_task_by_id(db, task_id, user)
+        project = task.project
         db.delete(task)
         db.commit()
+        if project:
+            from app.services.project_service import ProjectService
+            ProjectService.check_and_auto_complete_project(db, project)
 
     @staticmethod
     def add_subtask(db: Session, task_id: str, data: SubtaskCreate, user: User) -> Subtask:
@@ -163,8 +180,27 @@ class TaskService:
             due_date=data.due_date
         )
         db.add(subtask)
+        db.flush()
+
+        # If subtask is created (especially incomplete), parent task and project reactivate from COMPLETED to ACTIVE
+        if not subtask.is_completed:
+            if task.status == TaskStatus.COMPLETED:
+                task.status = TaskStatus.IN_PROGRESS
+                
+            if task.project:
+                from app.models.project import ProjectStatus, ProjectPhase
+                if task.project.status == ProjectStatus.COMPLETED or str(task.project.status).upper() == "COMPLETED":
+                    task.project.status = ProjectStatus.ACTIVE
+                if task.project.phase == ProjectPhase.COMPLETED or str(task.project.phase).lower() == "completed":
+                    task.project.phase = ProjectPhase.IN_PROGRESS
+
         db.commit()
         db.refresh(subtask)
+
+        if task.project:
+            from app.services.project_service import ProjectService
+            ProjectService.check_and_auto_complete_project(db, task.project)
+
         return subtask
 
     @staticmethod
@@ -183,22 +219,27 @@ class TaskService:
         if data.due_date is not None:
             subtask.due_date = data.due_date
 
+        db.flush()
+
+        # If subtask is marked incomplete, revert task and project from COMPLETED to ACTIVE / IN_PROGRESS
+        if subtask.is_completed is False:
+            if task.status == TaskStatus.COMPLETED:
+                task.status = TaskStatus.IN_PROGRESS
+            if task.project:
+                from app.models.project import ProjectStatus, ProjectPhase
+                if task.project.status == ProjectStatus.COMPLETED or str(task.project.status).upper() == "COMPLETED":
+                    task.project.status = ProjectStatus.ACTIVE
+                if task.project.phase == ProjectPhase.COMPLETED or str(task.project.phase).lower() == "completed":
+                    task.project.phase = ProjectPhase.IN_PROGRESS
+        elif subtask.is_completed is True:
+            # If all subtasks of this task are completed, task can be marked COMPLETED
+            if task.subtasks and all(s.is_completed for s in task.subtasks):
+                task.status = TaskStatus.COMPLETED
+
         db.commit()
         db.refresh(subtask)
-        
-        # Auto-complete or auto-revert the parent task based on subtask progress
-        all_subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
-        if all_subtasks:
-            all_done = all(st.is_completed for st in all_subtasks)
-            if all_done and task.status != TaskStatus.COMPLETED:
-                task.status = TaskStatus.COMPLETED
-                db.commit()
-                db.refresh(task)
-            elif not all_done and task.status == TaskStatus.COMPLETED:
-                task.status = TaskStatus.IN_PROGRESS
-                db.commit()
-                db.refresh(task)
-                
+
+        if task.project:
             from app.services.project_service import ProjectService
             ProjectService.check_and_auto_complete_project(db, task.project)
 

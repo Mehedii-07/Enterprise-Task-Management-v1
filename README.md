@@ -63,17 +63,44 @@ ng serve
 
 ---
 
-### Option B: Docker Container Deployment
+### Option B: Docker Container Deployment (Production-Ready)
 
+The platform is fully containerized with automated PostgreSQL health checks, persistent media volumes, and an Nginx reverse proxy.
+
+1. **Configure Environment Variables (Recommended for Production):**
 ```bash
-docker-compose up --build -d
+cp .env.example .env
+# Edit .env and supply your secure POSTGRES_PASSWORD and SECRET_KEY
 ```
+
+2. **Launch All Services with Docker Compose:**
+```bash
+docker compose up --build -d
+```
+
 This starts:
-- **PostgreSQL Database** on port `5432`
-- **FastAPI Backend** on port `8000`
-- **Angular Nginx Frontend** on port `4200`
+- **Nginx Reverse Proxy & Angular Frontend** on port `80` (and port `4200`)
+- **FastAPI Application Server** on port `8000` (proxied under `/api/`, `/api/v1/ws/`, and `/static/`)
+- **PostgreSQL 16 Database** on port `5432` with automated health checks and persistent storage volume
+- **Avatars & Media Storage** on persistent named volume `uploads_data`
+
+3. **Access the Application:**
+- Web App: `http://localhost` or `http://localhost:4200`
+- API Swagger Docs: `http://localhost:8000/api/v1/docs` (or via reverse proxy: `http://localhost/api/v1/docs`)
 
 ---
+
+### Option C: Cloud VPS Production Deployment (AWS / DigitalOcean / Hetzner)
+
+1. Provision an Ubuntu 22.04 / 24.04 server.
+2. Install Docker: `sudo apt update && sudo apt install -y docker.io docker-compose-v2`
+3. Clone repository and set production secrets in `.env`.
+4. Run `docker compose up -d --build`.
+5. *(Optional)* Set up domain name & SSL using Certbot / Nginx:
+   ```bash
+   sudo apt install -y certbot python3-certbot-nginx
+   sudo certbot --nginx -d yourdomain.com
+   ```
 
 ## 🔑 Pre-seeded Quick Demo Accounts
 

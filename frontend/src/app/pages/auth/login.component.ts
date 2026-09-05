@@ -334,6 +334,23 @@ import { AuthService } from '../../core/services/auth.service';
         .demo-btn.emp:hover { border-color: rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.1); }
       }
     }
+
+    @media (max-width: 480px) {
+      .auth-page {
+        padding: 16px;
+      }
+      .glass-card-3d {
+        padding: 24px 16px;
+        border-radius: 16px;
+      }
+      .brand-header {
+        margin-bottom: 20px;
+        h2 { font-size: 1.3rem; }
+      }
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   `]
 })
 export class LoginComponent {

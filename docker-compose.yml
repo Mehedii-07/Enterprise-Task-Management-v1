@@ -6,13 +6,19 @@ services:
     container_name: enterprise_db
     restart: always
     environment:
-      POSTGRES_DB: enterprise_task_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: mehedi
+      POSTGRES_DB: ${POSTGRES_DB:-enterprise_task_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mehedi}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-enterprise_task_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   backend:
     build:
@@ -21,12 +27,17 @@ services:
     container_name: enterprise_backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/enterprise_task_db
-      - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-mehedi}@postgres:5432/${POSTGRES_DB:-enterprise_task_db}
+      - SECRET_KEY=${SECRET_KEY:-09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DEBUG=${DEBUG:-False}
     ports:
       - "8000:8000"
+    volumes:
+      - uploads_data:/app/app/static/avatars
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   frontend:
     build:
@@ -35,9 +46,11 @@ services:
     container_name: enterprise_frontend
     restart: always
     ports:
+      - "80:80"
       - "4200:80"
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  uploads_data:

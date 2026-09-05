@@ -26,7 +26,7 @@ class ProjectMilestoneResponse(ProjectMilestoneBase):
 
 class MilestoneToggleRequest(BaseModel):
     is_completed: bool
-    project_phase: Optional[ProjectPhase] = None
+    project_phase: Optional[str] = None
 
 
 class ProjectAssignRequest(BaseModel):

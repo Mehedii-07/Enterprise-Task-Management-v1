@@ -66,30 +66,58 @@ class Project(Base):
 
     @property
     def progress_percentage(self) -> float:
-        if self.status == ProjectStatus.COMPLETED or self.phase == ProjectPhase.COMPLETED:
-            return 100.0
-            
-        has_tasks = len(self.tasks) > 0
-        has_milestones = len(self.milestones) > 0
+        phase_map = {
+            ProjectPhase.PLANNING: 25.0,
+            ProjectPhase.IN_PROGRESS: 50.0,
+            ProjectPhase.TESTING: 75.0,
+            ProjectPhase.COMPLETED: 100.0
+        }
         
-        if not has_tasks and not has_milestones:
-            if self.phase == ProjectPhase.PLANNING:
-                return 25.0
-            elif self.phase == ProjectPhase.IN_PROGRESS:
-                return 50.0
-            elif self.phase == ProjectPhase.TESTING:
-                return 75.0
-            return 0.0
-            
-        task_progress = (sum(task.progress_percentage for task in self.tasks) / len(self.tasks)) if has_tasks else 0.0
-        milestone_progress = (sum(100.0 for m in self.milestones if m.is_completed) / len(self.milestones)) if has_milestones else 0.0
-        
-        if has_tasks and has_milestones:
-            return round((task_progress + milestone_progress) / 2.0, 1)
-        elif has_tasks:
-            return round(task_progress, 1)
+        current_phase = self.phase
+        phase_pct = 25.0
+        if isinstance(current_phase, str):
+            normalized = current_phase.lower().replace(" ", "_")
+            for k, v in phase_map.items():
+                if normalized == k.value.lower().replace(" ", "_") or normalized == k.name.lower().replace(" ", "_"):
+                    phase_pct = v
+                    break
         else:
-            return round(milestone_progress, 1)
+            phase_pct = phase_map.get(current_phase, 25.0)
+
+        # Collect all subtasks across all tasks in this project
+        all_subtasks = []
+        for task in (self.tasks or []):
+            if task.subtasks:
+                all_subtasks.extend(task.subtasks)
+
+        if all_subtasks:
+            completed_subtasks = sum(1 for s in all_subtasks if s.is_completed)
+            subtask_pct = (completed_subtasks / len(all_subtasks)) * 100.0
+        elif self.tasks:
+            from app.models.task import TaskStatus
+            completed_tasks = sum(1 for t in self.tasks if t.status == TaskStatus.COMPLETED)
+            subtask_pct = (completed_tasks / len(self.tasks)) * 100.0
+        elif self.milestones:
+            completed_milestones = sum(1 for m in self.milestones if m.is_completed)
+            subtask_pct = (completed_milestones / len(self.milestones)) * 100.0
+        else:
+            subtask_pct = 0.0
+
+        # If no tasks or milestones exist, progress is purely determined by Phase
+        if not self.tasks and not self.milestones:
+            return round(phase_pct, 1)
+
+        # Total 100% depends on both subtask complete AND Phase combinations
+        # 50% weight from subtasks, 50% weight from Phase
+        total_pct = (subtask_pct * 0.5) + (phase_pct * 0.5)
+
+        # Must have both subtasks 100% AND phase Completed (100%) to achieve 100%
+        if subtask_pct >= 100.0 and phase_pct >= 100.0:
+            return 100.0
+        elif total_pct >= 100.0:
+            return 99.0
+
+        return round(total_pct, 1)
 
 
 class ProjectMember(Base):

@@ -260,6 +260,17 @@ import { Router } from '@angular/router';
         }
       }
     }
+
+    @media (max-width: 768px) {
+      .page-container { padding: 16px; }
+      .glass-card { padding: 20px 16px; border-radius: 16px; }
+      .avatar-section { flex-direction: column; text-align: center; gap: 16px; margin-bottom: 24px; padding-bottom: 20px; }
+      .avatar-info { display: flex; flex-direction: column; align-items: center; width: 100%; }
+      .dropzone { width: 100%; justify-content: center; }
+      .profile-form .form-row { grid-template-columns: 1fr; gap: 0; }
+      .form-actions { justify-content: stretch; }
+      .form-actions .btn-3d { width: 100%; justify-content: center; }
+    }
   `]
 })
 export class ProfileComponent implements OnInit {

@@ -19,7 +19,7 @@ import { Project } from '../../core/models/project.model';
           <h2>Kanban Task Board</h2>
           <p>Task Workflows, Priority Badges, Subtask Execution & Time Tracking</p>
         </div>
-        <div style="display: flex; gap: 12px;">
+        <div class="header-action-row">
           <div class="filter-group">
             <select [(ngModel)]="selectedProjectId" (ngModelChange)="loadTasks()" class="project-filter">
               <option value="">All Projects</option>
@@ -37,9 +37,19 @@ import { Project } from '../../core/models/project.model';
         </div>
       </div>
 
+      <!-- Mobile Column Switcher -->
+      <div class="mobile-col-switcher">
+        <button class="col-pill" [class.active]="activeMobileCol === 'ALL'" (click)="activeMobileCol = 'ALL'">
+          All ({{ tasks().length }})
+        </button>
+        <button class="col-pill" *ngFor="let col of columns" [class.active]="activeMobileCol === col.status" (click)="activeMobileCol = col.status">
+          {{ col.label }} ({{ (tasksByStatus()[col.status] || []).length }})
+        </button>
+      </div>
+
       <!-- Kanban Columns -->
       <div class="kanban-board">
-        <div class="kanban-column" *ngFor="let col of columns; trackBy: trackByColStatus">
+        <div class="kanban-column" *ngFor="let col of columns; trackBy: trackByColStatus" [class.hidden-mobile]="activeMobileCol !== 'ALL' && activeMobileCol !== col.status">
           <div class="column-header">
             <span class="col-title">{{ col.label }}</span>
             <span class="col-count">{{ (tasksByStatus()[col.status] || []).length }}</span>
@@ -156,8 +166,40 @@ import { Project } from '../../core/models/project.model';
     </div>
   `,
   styles: [`
-    .task-page { display: flex; flex-direction: column; gap: 24px; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; }
+    .task-page {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 20px 24px;
+
+      h2 {
+        font-size: 1.5rem;
+        margin-bottom: 4px;
+      }
+      p {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+    }
+
+    .header-action-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-left: auto;
+    }
     
     .project-filter {
       padding: 8px 12px;
@@ -166,7 +208,44 @@ import { Project } from '../../core/models/project.model';
       border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 0.9rem;
-      min-width: 200px;
+      min-width: 180px;
+      max-width: 240px;
+    }
+
+    .mobile-col-switcher {
+      display: none;
+      overflow-x: auto;
+      gap: 8px;
+      padding: 4px 2px 10px;
+      -webkit-overflow-scrolling: touch;
+      &::-webkit-scrollbar { height: 4px; }
+      &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+      .col-pill {
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s;
+        flex-shrink: 0;
+
+        &:hover {
+          border-color: var(--accent-primary);
+          color: var(--text-primary);
+        }
+
+        &.active {
+          background: var(--accent-primary);
+          color: #fff;
+          border-color: var(--accent-primary);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+      }
     }
 
     .kanban-board {
@@ -174,14 +253,32 @@ import { Project } from '../../core/models/project.model';
       flex-wrap: nowrap;
       gap: 16px;
       overflow-x: auto;
-      padding-bottom: 16px;
+      overflow-y: hidden;
+      padding-bottom: 20px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
       -webkit-overflow-scrolling: touch;
-      scroll-snap-type: x mandatory;
+
+      &::-webkit-scrollbar {
+        height: 8px;
+      }
+      &::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+        &:hover {
+          background: var(--accent-primary);
+        }
+      }
 
       .kanban-column {
-        flex: 0 0 280px;
-        min-width: 280px;
-        scroll-snap-align: start;
+        flex: 0 0 270px;
+        min-width: 250px;
+        max-width: 300px;
         background: var(--bg-sidebar);
         border: 1px solid var(--border-color);
         border-radius: 16px;
@@ -247,11 +344,47 @@ import { Project } from '../../core/models/project.model';
       max-height: 90vh;
       overflow-y: auto;
       h3 { font-size: 1.3rem; margin-bottom: 20px; }
-      .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    }
+
+    @media (max-width: 1300px) {
+      .mobile-col-switcher {
+        display: flex;
+      }
+      .kanban-column.hidden-mobile {
+        display: none !important;
+      }
+      .kanban-column {
+        flex: 1 1 300px;
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .kanban-column {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-action-row {
+        width: 100%;
+        margin-left: 0;
+        .filter-group, select, button, a {
+          width: 100%;
+          justify-content: center;
+        }
+      }
     }
   `]
 })
 export class TaskBoardComponent implements OnInit {
+  activeMobileCol: string = 'ALL';
   api = inject(ApiService);
   auth = inject(AuthService);
   ws = inject(WebsocketService);

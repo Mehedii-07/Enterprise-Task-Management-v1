@@ -71,6 +71,8 @@ interface ProjectWithTasks {
             <div>
               <h3>{{ group.project.name }}</h3>
               <p class="project-meta">
+                <span class="badge" [ngClass]="'status-' + (group.project.status || 'ACTIVE').toLowerCase()">{{ group.project.status }}</span> &bull;
+                <span>Phase: {{ group.project.phase || 'Planning' }}</span> &bull;
                 {{ group.tasks.length }} Tasks &bull;
                 {{ getSubtaskCount(group) }} Subtasks &bull;
                 {{ getDoneSubtasksForGroup(group) }} Completed
@@ -426,9 +428,21 @@ interface ProjectWithTasks {
 
     @media (max-width: 768px) {
       .page-header { flex-direction: column; }
-      .task-header { flex-direction: column; align-items: flex-start; }
-      .task-subtask-progress { align-items: flex-start; }
-      .project-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .header-stats { width: 100%; justify-content: flex-start; }
+      .project-header { flex-direction: column; align-items: flex-start; gap: 14px; }
+      .project-header-right { width: 100%; justify-content: space-between; }
+      .tasks-container { padding: 0 12px 16px; }
+      .task-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .task-subtask-progress { width: 100%; align-items: flex-start; }
+      .st-progress-info { width: 100%; }
+      .mini-progress { flex: 1; }
+      .subtask-item { flex-direction: column; align-items: stretch; gap: 8px; }
+      .st-status-badge { align-self: flex-start; }
+      .add-subtask-row { flex-wrap: wrap; }
+      .add-st-input { width: 100%; min-width: 0; }
+      .btn-add-st { width: 100%; }
+      .quick-add-task { flex-direction: column; }
+      .quick-add-task button { width: 100%; height: 38px; }
     }
   `]
 })
@@ -461,7 +475,8 @@ export class SubtasksComponent implements OnInit {
   ngOnInit() {
     this.loadData();
     this.ws.messages$.subscribe((msg: WsMessage) => {
-      if (['TASK_CREATED', 'TASK_UPDATED', 'SUBTASK_UPDATED', 'PROJECT_DELETED'].includes(msg.event)) {
+      const ev = (msg.event || '').toUpperCase();
+      if (['TASK_CREATED', 'TASK_UPDATED', 'SUBTASK_CREATED', 'SUBTASK_UPDATED', 'PROJECT_UPDATED', 'PROJECT_DELETED'].includes(ev)) {
         this.loadData();
       }
     });
@@ -524,10 +539,28 @@ export class SubtasksComponent implements OnInit {
   }
 
   getProjectProgress(group: ProjectWithTasks): number {
+    if (group.project && group.project.progress_percentage !== undefined && group.project.progress_percentage !== null) {
+      return Math.round(group.project.progress_percentage);
+    }
+
+    const phaseMap: Record<string, number> = {
+      'PLANNING': 25,
+      'IN_PROGRESS': 50,
+      'TESTING': 75,
+      'COMPLETED': 100
+    };
+    const rawPhase = (group.project?.phase || 'PLANNING').toUpperCase().replace(/\s+/g, '_');
+    const phasePct = phaseMap[rawPhase] ?? 25;
+
     const total = this.getSubtaskCount(group);
-    if (total === 0) return 0;
-    const done = this.getDoneSubtasksForGroup(group);
-    return Math.round((done / total) * 100);
+    const subtaskPct = total > 0 ? (this.getDoneSubtasksForGroup(group) / total) * 100 : 0;
+
+    if (total === 0) return Math.round(phasePct);
+
+    // Reaches 100% only when BOTH subtasks and phase are completed
+    if (subtaskPct >= 100 && phasePct >= 100) return 100;
+    const combined = (subtaskPct * 0.5) + (phasePct * 0.5);
+    return Math.min(Math.round(combined), 99);
   }
 
   /** Returns stroke-dasharray for SVG ring based on progress % */

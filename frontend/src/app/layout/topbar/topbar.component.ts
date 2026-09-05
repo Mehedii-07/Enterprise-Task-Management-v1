@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -13,7 +13,11 @@ import { Subscription } from 'rxjs';
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <header class="topbar">
-      <div class="search-box">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" (click)="toggleSidebar.emit()" title="Toggle Navigation Menu">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <div class="search-box">
         <span class="material-symbols-outlined search-icon">search</span>
         <input 
           type="text" 
@@ -32,8 +36,9 @@ import { Subscription } from 'rxjs';
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="topbar-actions">
+    <div class="topbar-actions">
         <div class="calendar-wrapper">
           <button class="icon-btn btn-3d-interactive" (click)="toggleCalendar()">
             <span class="material-symbols-outlined">calendar_month</span>
@@ -154,11 +159,39 @@ import { Subscription } from 'rxjs';
       top: 0;
       z-index: 90;
       perspective: 1000px;
+      transition: margin-left 0.3s ease;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      &:hover { background: var(--bg-card-hover); border-color: var(--border-focus); }
+      .material-symbols-outlined { font-size: 22px; }
     }
 
     .search-box {
       position: relative;
-      width: 420px;
+      flex: 1;
+      max-width: 420px;
+      min-width: 0;
 
       .search-icon {
         position: absolute;
@@ -581,9 +614,68 @@ import { Subscription } from 'rxjs';
       font-size: 0.75rem; color: var(--text-muted);
     }
     .calendar-legend .legend-item { display: flex; align-items: center; gap: 6px; }
+
+    @media (max-width: 1024px) {
+      .topbar {
+        margin-left: 80px;
+        padding: 0 20px;
+      }
+    }
+
+    @media (max-width: 1366px) {
+      .topbar {
+        padding: 0 20px;
+      }
+      .search-box {
+        max-width: 300px;
+      }
+      .topbar-actions {
+        gap: 14px;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .topbar {
+        margin-left: 80px;
+        padding: 0 16px;
+      }
+      .search-box {
+        max-width: 240px;
+      }
+      .role-badge {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .topbar {
+        margin-left: 0;
+        padding: 0 14px;
+        height: 60px;
+      }
+      .mobile-menu-btn {
+        display: flex;
+      }
+      .search-box {
+        max-width: 180px;
+      }
+      .topbar-actions {
+        gap: 8px;
+      }
+      .glass-dropdown-3d {
+        position: fixed;
+        top: 65px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: calc(100vw - 24px);
+        transform-origin: top center;
+      }
+    }
   `]
 })
 export class TopbarComponent implements OnInit, OnDestroy {
+  @Output() toggleSidebar = new EventEmitter<void>();
   api = inject(ApiService);
   auth = inject(AuthService);
   ws = inject(WebsocketService);

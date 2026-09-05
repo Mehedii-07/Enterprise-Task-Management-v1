@@ -73,7 +73,7 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
                   <th>Project Code</th>
                   <th>Project Name</th>
                   <th>Phase</th>
-                  <th>Project Progress</th>
+                  <th>Phase-wise Project Completion Integration</th>
                   <th>Milestones Checklist</th>
                   <th style="text-align: right;">Report</th>
                 </tr>
@@ -98,7 +98,7 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
                   <td style="min-width: 150px;">
                     <div class="progress-section">
                       <div class="progress-header" style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px;">
-                        <span>Completion</span>
+                        <span>Implementation %</span>
                         <span class="font-bold text-primary">{{ p.progress_percentage || 0 }}%</span>
                       </div>
                       <div class="progress-bar-container" style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
@@ -219,15 +219,28 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
     </div>
   `,
   styles: [`
-    .dashboard-page { display: flex; flex-direction: column; gap: 24px; }
-    .header-banner { display: flex; justify-content: space-between; align-items: center; }
+    .dashboard-page {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .header-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
       .metric-card {
-        .label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
-        .value { font-size: 1.8rem; font-weight: 800; color: var(--accent-primary); display: block; margin-top: 4px; }
+        .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .value { font-size: 1.6rem; font-weight: 800; color: var(--accent-primary); display: block; margin-top: 4px; }
         .text-success { color: var(--accent-success); }
         .text-primary { color: var(--accent-primary); }
       }
@@ -237,6 +250,8 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
         margin-bottom: 20px;
         h3 { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
       }
@@ -287,12 +302,63 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
           flex-direction: column;
           align-items: center;
           .c-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-          .c-val { font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin-top: 4px; }
-          .text-primary { color: var(--accent-primary); }
+          .c-val { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); display: block; }
         }
       }
     }
-    .completed { text-decoration: line-through; color: var(--text-muted); opacity: 0.7; }
+
+    .milestones-checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 140px;
+      overflow-y: auto;
+
+      .milestone-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px;
+        border-radius: 6px;
+        transition: background 0.2s;
+
+        &:hover { background: rgba(255, 255, 255, 0.03); }
+
+        input[type="checkbox"] {
+          accent-color: var(--accent-success);
+          cursor: pointer;
+          width: 16px;
+          height: 16px;
+        }
+
+        span {
+          font-size: 0.85rem;
+          color: var(--text-primary);
+          transition: all 0.2s;
+
+          &.completed {
+            text-decoration: line-through;
+            color: var(--text-muted);
+          }
+        }
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .team-contribution .contrib-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .header-banner { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .team-contribution .contrib-grid { grid-template-columns: 1fr; }
+      .workspace-section .section-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 480px) {
+      .metrics-grid { grid-template-columns: 1fr; }
+    }
   `]
 })
 export class EmployeeDashboardComponent implements OnInit {
@@ -348,11 +414,23 @@ export class EmployeeDashboardComponent implements OnInit {
 
   toggleMilestone(project: any, milestone: any, event: any) {
     const isCompleted = event.target.checked;
+    milestone.is_completed = isCompleted;
+
+    // Optimistic progress recalculation
+    const totalM = (project.milestones || []).length;
+    const doneM = (project.milestones || []).filter((m: any) => m.is_completed).length;
+    if (totalM > 0) {
+      project.progress_percentage = Math.round((doneM / totalM) * 100);
+    }
+
     this.api.patch('/projects/' + project.id + '/milestones/' + milestone.id, {
-      is_completed: isCompleted,
-      project_phase: project.phase
+      is_completed: isCompleted
     }).subscribe({
       next: () => {
+        this.loadDashboard();
+      },
+      error: () => {
+        milestone.is_completed = !isCompleted;
         this.loadDashboard();
       }
     });

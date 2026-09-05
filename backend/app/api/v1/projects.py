@@ -142,6 +142,21 @@ def toggle_milestone(
         print(f"WS error: {e}")
     return milestone
 
+
+@router.delete("/{project_id}/milestones/{milestone_id}", response_model=MessageResponse)
+def delete_milestone(
+    project_id: str,
+    milestone_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_project_lead)
+):
+    ProjectService.delete_milestone(db, project_id, milestone_id, current_user)
+    try:
+        asyncio.run(manager.broadcast({"event": "project_updated", "project_id": project_id, "title": "Milestone deleted"}))
+    except Exception as e:
+        print(f"WS error: {e}")
+    return MessageResponse(message="Milestone successfully deleted.")
+
 @router.get("/{project_id}/export-pdf")
 def export_project_pdf(
     project_id: str,

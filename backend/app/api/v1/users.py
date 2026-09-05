@@ -69,9 +69,8 @@ def upload_avatar(
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    # Assuming frontend is on port 4200 and backend is on port 8000
-    # In a real app we'd get the host from a config
-    current_user.avatar_url = f"http://localhost:8000/static/avatars/{filename}"
+    # Store relative path so it seamlessly resolves across any domain or reverse proxy
+    current_user.avatar_url = f"/static/avatars/{filename}"
     db.commit()
     db.refresh(current_user)
     return current_user

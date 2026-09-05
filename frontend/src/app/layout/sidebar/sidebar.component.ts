@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -8,15 +8,23 @@ import { AuthService } from '../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <aside class="sidebar">
+    <!-- Mobile Backdrop -->
+    <div class="sidebar-backdrop" *ngIf="mobileOpen" (click)="closeMobile.emit()"></div>
+
+    <aside class="sidebar" [class.mobile-open]="mobileOpen">
       <div class="brand">
-        <div class="logo-icon">
-          <img src="/pj.webp" alt="Logo" class="custom-logo-img" />
+        <div class="brand-left">
+          <div class="logo-icon">
+            <img src="/pj.webp" alt="Logo" class="custom-logo-img" />
+          </div>
+          <div class="brand-text">
+            <h3>Enterprise</h3>
+            <span>Task Manager</span>
+          </div>
         </div>
-        <div class="brand-text">
-          <h3>Enterprise</h3>
-          <span>Task Manager</span>
-        </div>
+        <button class="mobile-close-btn" (click)="closeMobile.emit()" title="Close Navigation">
+          <span class="material-symbols-outlined">close</span>
+        </button>
       </div>
 
       <div class="user-profile-badge">
@@ -30,27 +38,32 @@ import { AuthService } from '../../core/services/auth.service';
       <nav class="nav-menu">
         <div class="nav-section-title">MAIN MENU</div>
         
-        <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" (click)="closeMobile.emit()">
           <span class="material-symbols-outlined">dashboard</span>
           <span>Dashboard</span>
         </a>
 
-        <a routerLink="/projects" routerLinkActive="active" class="nav-item">
+        <a routerLink="/projects" routerLinkActive="active" class="nav-item" (click)="closeMobile.emit()">
           <span class="material-symbols-outlined">folder</span>
-          <span>Projects</span>
+          <span>Projects & Milestones</span>
         </a>
 
-        <a routerLink="/tasks" routerLinkActive="active" class="nav-item">
+        <a routerLink="/tasks" routerLinkActive="active" class="nav-item" (click)="closeMobile.emit()">
           <span class="material-symbols-outlined">task_alt</span>
           <span>Task Breakdown</span>
         </a>
 
-        <a routerLink="/subtasks" routerLinkActive="active" class="nav-item">
+        <a routerLink="/subtasks" routerLinkActive="active" class="nav-item" (click)="closeMobile.emit()">
           <span class="material-symbols-outlined">checklist</span>
           <span>Subtask Progress</span>
         </a>
 
-        <a routerLink="/chat" routerLinkActive="active" class="nav-item">
+        <a routerLink="/reports" routerLinkActive="active" class="nav-item" (click)="closeMobile.emit()">
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+          <span>PDF Reports</span>
+        </a>
+
+        <a routerLink="/chat" routerLinkActive="active" class="nav-item" (click)="closeMobile.emit()">
           <span class="material-symbols-outlined">forum</span>
           <span>General Chat</span>
         </a>
@@ -59,16 +72,10 @@ import { AuthService } from '../../core/services/auth.service';
         <ng-container *ngIf="auth.hasRole(['CEO', 'ADMIN'])">
           <div class="nav-section-title">ADMINISTRATION</div>
 
-          <a routerLink="/users" routerLinkActive="active" class="nav-item">
+          <a routerLink="/users" routerLinkActive="active" class="nav-item" (click)="closeMobile.emit()">
             <span class="material-symbols-outlined">group</span>
             <span>User Management</span>
           </a>
-
-          <a *ngIf="auth.userRole() === 'CEO'" routerLink="/organizations" routerLinkActive="active" class="nav-item">
-            <span class="material-symbols-outlined">corporate_fare</span>
-            <span>Organizations</span>
-          </a>
-
         </ng-container>
       </nav>
 
@@ -81,6 +88,10 @@ import { AuthService } from '../../core/services/auth.service';
     </aside>
   `,
   styles: [`
+    .sidebar-backdrop {
+      display: none;
+    }
+
     .sidebar {
       width: 260px;
       height: 100vh;
@@ -93,14 +104,21 @@ import { AuthService } from '../../core/services/auth.service';
       left: 0;
       top: 0;
       z-index: 100;
+      transition: width 0.3s ease, left 0.3s ease;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
       padding-bottom: 20px;
       border-bottom: 1px solid var(--border-color);
+
+      .brand-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
 
       .logo-icon {
         width: 42px;
@@ -112,6 +130,7 @@ import { AuthService } from '../../core/services/auth.service';
         justify-content: center;
         color: #fff;
         overflow: hidden;
+        flex-shrink: 0;
       }
 
       .logo-icon .custom-logo-img {
@@ -123,6 +142,17 @@ import { AuthService } from '../../core/services/auth.service';
       .brand-text {
         h3 { font-size: 1.1rem; color: var(--text-primary); line-height: 1.2; }
         span { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+      }
+
+      .mobile-close-btn {
+        display: none;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 8px;
+        &:hover { color: var(--text-primary); background: var(--bg-card-hover); }
       }
     }
 
@@ -146,10 +176,12 @@ import { AuthService } from '../../core/services/auth.service';
         justify-content: center;
         font-weight: 700;
         color: #fff;
+        flex-shrink: 0;
       }
 
       .info {
-        .name { font-size: 0.85rem; font-weight: 600; }
+        min-width: 0;
+        .name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       }
     }
 
@@ -179,6 +211,7 @@ import { AuthService } from '../../core/services/auth.service';
         font-size: 0.9rem;
         font-weight: 500;
         transition: all 0.2s ease;
+        white-space: nowrap;
 
         &:hover, &.active {
           background: var(--bg-card-hover);
@@ -214,13 +247,12 @@ import { AuthService } from '../../core/services/auth.service';
       }
     }
 
-    /* Responsive Sidebar Collapsed View */
-    @media (max-width: 1024px) {
+    /* Tablet View (769px - 1024px): 80px Rail */
+    @media (min-width: 769px) and (max-width: 1024px) {
       .sidebar {
         width: 80px;
         padding: 24px 8px;
         align-items: center;
-        transition: width 0.3s ease;
       }
       .brand {
         flex-direction: column;
@@ -251,10 +283,48 @@ import { AuthService } from '../../core/services/auth.service';
         }
       }
     }
+
+    /* Mobile View (<= 768px): Off-canvas Slide Drawer */
+    @media (max-width: 768px) {
+      .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(4px);
+        z-index: 998;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: -300px;
+        width: 280px;
+        max-width: 85vw;
+        height: 100vh;
+        z-index: 999;
+        box-shadow: none;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &.mobile-open {
+          left: 0;
+          box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+        }
+      }
+
+      .brand .mobile-close-btn {
+        display: flex;
+      }
+    }
   `]
 })
 export class SidebarComponent {
   auth = inject(AuthService);
+  @Input() mobileOpen = false;
+  @Output() closeMobile = new EventEmitter<void>();
 
   userInitials(): string {
     const user = this.auth.currentUser();

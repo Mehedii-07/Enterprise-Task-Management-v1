@@ -72,8 +72,9 @@ import { AuthService } from '../../core/services/auth.service';
     .chat-container {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 40px); /* Adjust based on your layout padding */
-      max-height: 800px;
+      height: calc(100vh - 200px);
+      min-height: 480px;
+      max-height: 850px;
       background: var(--bg-card);
       border-radius: 16px;
       border: 1px solid var(--border-color);
@@ -241,6 +242,25 @@ import { AuthService } from '../../core/services/auth.service';
 
           .material-symbols-outlined { font-size: 1.2rem; }
         }
+      }
+    }
+
+    @media (max-width: 768px) {
+      .chat-container {
+        height: calc(100dvh - 150px);
+        min-height: 380px;
+        border-radius: 12px;
+      }
+      .chat-header {
+        padding: 12px 16px;
+        .header-info .chat-logo-icon { width: 36px; height: 36px; }
+      }
+      .chat-messages {
+        padding: 16px 12px;
+        .bubble { max-width: 88%; font-size: 0.88rem; }
+      }
+      .chat-input-area {
+        padding: 10px 12px;
       }
     }
   `]

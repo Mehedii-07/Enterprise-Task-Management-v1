@@ -29,6 +29,7 @@ export interface Project {
   budget: number;
   status: ProjectStatus;
   priority: ProjectPriority;
+  phase?: string;
   start_date?: string;
   end_date?: string;
   assign_date?: string;

@@ -156,15 +156,28 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
     </div>
   `,
   styles: [`
-    .dashboard-page { display: flex; flex-direction: column; gap: 24px; }
-    .header-banner { display: flex; justify-content: space-between; align-items: center; }
+    .dashboard-page {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .header-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
       .metric-card {
-        .label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
-        .value { font-size: 1.8rem; font-weight: 800; color: var(--accent-primary); display: block; margin-top: 4px; }
+        .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .value { font-size: 1.6rem; font-weight: 800; color: var(--accent-primary); display: block; margin-top: 4px; }
       }
     }
     .status-summary {
@@ -192,6 +205,8 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
       grid-template-columns: 1fr 1fr;
       gap: 24px;
       margin-top: 10px;
+      width: 100%;
+      min-width: 0;
     }
     
     h3 { font-size: 1.1rem; margin-bottom: 16px; }
@@ -273,6 +288,35 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
       th { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); }
     }
     .text-primary { color: var(--accent-primary); }
+
+    @media (max-width: 1200px) {
+      .dashboard-bottom-grid {
+        grid-template-columns: 1fr;
+      }
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .status-summary .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .header-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .status-summary .status-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   `]
 })
 export class AdminDashboardComponent implements OnInit {

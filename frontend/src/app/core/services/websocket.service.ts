@@ -23,7 +23,7 @@ export class WebsocketService {
     if (this.isConnecting) return;
     this.isConnecting = true;
 
-    this.socket = new WebSocket('ws://localhost:8000/api/v1/ws/events');
+    this.socket = new WebSocket(this.getWsUrl());
 
     this.socket.onopen = () => {
       console.log('WebSocket connection established');
@@ -49,5 +49,13 @@ export class WebsocketService {
       console.error('WebSocket error:', error);
       this.socket.close();
     };
+  }
+
+  private getWsUrl(): string {
+    if (typeof window === 'undefined') {
+      return 'ws://localhost:8000/api/v1/ws/events';
+    }
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/api/v1/ws/events`;
   }
 }

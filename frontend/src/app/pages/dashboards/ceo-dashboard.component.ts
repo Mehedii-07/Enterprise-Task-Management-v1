@@ -103,7 +103,7 @@ import { FormsModule } from '@angular/forms';
         <div class="section-header" style="margin-bottom: 16px;">
           <h3 style="display: flex; align-items: center; gap: 8px; font-size: 1.1rem;">
             <span class="material-symbols-outlined icon">monitoring</span>
-            <span>Enterprise Project Progress</span>
+            <span>Phase-wise Project Completion Integration</span>
           </h3>
           <button (click)="openCreateEmployeeModal()" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
             <span class="material-symbols-outlined" style="font-size: 18px;">person_add</span>
@@ -118,7 +118,7 @@ import { FormsModule } from '@angular/forms';
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Project Name</th>
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Assigned Employee</th>
                 <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Status</th>
-                <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Overall Progress</th>
+                <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Phase-wise Project Completion Integration</th>
                 <th style="padding: 12px 16px; text-align: right; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Report</th>
               </tr>
             </thead>
@@ -148,7 +148,7 @@ import { FormsModule } from '@angular/forms';
                 <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); min-width: 150px;">
                   <div class="progress-section">
                     <div class="progress-header" style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px;">
-                      <span>Completion</span>
+                      <span>Implementation %</span>
                       <span class="font-bold" style="color: var(--accent-primary);">{{ p.progress_percentage || 0 }}%</span>
                     </div>
                     <div class="progress-bar-container" style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
@@ -209,12 +209,17 @@ import { FormsModule } from '@angular/forms';
       display: flex;
       flex-direction: column;
       gap: 24px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
     }
 
     .header-banner {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
 
       h2 { font-size: 1.6rem; color: var(--text-primary); }
       p { color: var(--text-muted); font-size: 0.9rem; }
@@ -222,8 +227,8 @@ import { FormsModule } from '@angular/forms';
 
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
 
       .metric-card {
         display: flex;
@@ -231,13 +236,14 @@ import { FormsModule } from '@angular/forms';
         gap: 16px;
 
         .icon-wrapper {
-          width: 50px;
-          height: 50px;
+          width: 48px;
+          height: 48px;
           border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #fff;
+          flex-shrink: 0;
 
           &.blue { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
           &.purple { background: rgba(139, 92, 246, 0.2); color: #A78BFA; }
@@ -248,14 +254,15 @@ import { FormsModule } from '@angular/forms';
         .content {
           display: flex;
           flex-direction: column;
-          .label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
-          .value { font-size: 1.6rem; font-weight: 700; color: var(--text-primary); }
+          min-width: 0;
+          .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
         }
       }
     }
 
     .user-role-breakdown {
-      h3 { font-size: 1.1rem; margin-bottom: 20px; }
+      h3 { font-size: 1.1rem; margin-bottom: 16px; }
 
       .role-bars {
         display: grid;
@@ -274,6 +281,16 @@ import { FormsModule } from '@angular/forms';
           .role-title { font-weight: 600; color: var(--text-secondary); }
           .role-count { font-size: 1.4rem; font-weight: 800; color: var(--accent-primary); }
         }
+      }
+    }
+
+    .projects-section {
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
       }
     }
     
@@ -295,6 +312,44 @@ import { FormsModule } from '@angular/forms';
     }
     .dropdown-item:hover {
       background: rgba(255,255,255,0.05);
+    }
+
+    @media (max-width: 1200px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .user-role-breakdown .role-bars {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      .user-role-breakdown .role-bars {
+        grid-template-columns: 1fr;
+      }
+      .projects-section .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      .modal-content {
+        width: 95vw;
+        padding: 16px;
+      }
     }
   `]
 })

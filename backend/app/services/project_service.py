@@ -138,14 +138,10 @@ class ProjectService:
             project.budget = data.budget
         if data.status is not None:
             project.status = data.status
-            if data.status == ProjectStatus.COMPLETED:
-                project.phase = ProjectPhase.COMPLETED
         if data.priority is not None:
             project.priority = data.priority
         if data.phase is not None:
             project.phase = data.phase
-            if data.phase == ProjectPhase.COMPLETED:
-                project.status = ProjectStatus.COMPLETED
         if data.assigned_to_id is not None:
             project.assigned_to_id = data.assigned_to_id
         if data.manager_id is not None:
@@ -173,6 +169,7 @@ class ProjectService:
 
         db.commit()
         db.refresh(project)
+        ProjectService.check_and_auto_complete_project(db, project)
         return project
 
     @staticmethod
@@ -231,41 +228,72 @@ class ProjectService:
         milestone.is_completed = data.is_completed
         if data.project_phase:
             project.phase = data.project_phase
-            if data.project_phase == ProjectPhase.COMPLETED:
-                project.status = ProjectStatus.COMPLETED
             
         db.commit()
         db.refresh(milestone)
         
         ProjectService.check_and_auto_complete_project(db, project)
-        
         return milestone
 
     @staticmethod
+    def delete_milestone(db: Session, project_id: str, milestone_id: str, user: User) -> None:
+        project = ProjectService.get_project_by_id(db, project_id, user)
+        milestone = db.query(ProjectMilestone).filter(
+            ProjectMilestone.id == milestone_id,
+            ProjectMilestone.project_id == project_id
+        ).first()
+        if not milestone:
+            raise EntityNotFoundException("ProjectMilestone", milestone_id)
+        
+        db.delete(milestone)
+        db.commit()
+        ProjectService.check_and_auto_complete_project(db, project)
+
+    @staticmethod
     def check_and_auto_complete_project(db: Session, project: Project):
-        if project.status == ProjectStatus.COMPLETED:
+        if not project:
             return
             
-        from app.models.task import Task
-        from app.models.project import ProjectMilestone
+        from app.models.task import Task, Subtask, TaskStatus
+        from app.models.project import ProjectMilestone, ProjectPhase, ProjectStatus
         
-        total_tasks = db.query(Task).filter(Task.project_id == project.id).count()
-        completed_tasks = db.query(Task).filter(Task.project_id == project.id, Task.status == TaskStatus.COMPLETED).count()
+        # 1. Check all subtasks across all tasks for this project
+        all_subtasks = db.query(Subtask).join(Task).filter(Task.project_id == project.id).all()
+        all_tasks = db.query(Task).filter(Task.project_id == project.id).all()
+        all_milestones = db.query(ProjectMilestone).filter(ProjectMilestone.project_id == project.id).all()
         
-        total_milestones = db.query(ProjectMilestone).filter(ProjectMilestone.project_id == project.id).count()
-        completed_milestones = db.query(ProjectMilestone).filter(ProjectMilestone.project_id == project.id, ProjectMilestone.is_completed == True).count()
-        
-        has_tasks = total_tasks > 0
-        has_milestones = total_milestones > 0
-        
-        if not has_tasks and not has_milestones:
-            return
-            
-        tasks_done = (completed_tasks == total_tasks) if has_tasks else True
-        milestones_done = (completed_milestones == total_milestones) if has_milestones else True
-        
-        if tasks_done and milestones_done:
-            project.status = ProjectStatus.COMPLETED
-            project.phase = ProjectPhase.COMPLETED
-            db.commit()
-            db.refresh(project)
+        if all_subtasks:
+            total_subtasks = len(all_subtasks)
+            completed_subtasks = sum(1 for s in all_subtasks if s.is_completed)
+            subtasks_done = (completed_subtasks == total_subtasks)
+        elif all_tasks:
+            total_tasks = len(all_tasks)
+            completed_tasks = sum(1 for t in all_tasks if t.status == TaskStatus.COMPLETED)
+            subtasks_done = (completed_tasks == total_tasks)
+        elif all_milestones:
+            total_milestones = len(all_milestones)
+            completed_milestones = sum(1 for m in all_milestones if m.is_completed)
+            subtasks_done = (completed_milestones == total_milestones)
+        else:
+            subtasks_done = True
+
+        # 2. Check phase
+        phase_str = str(project.phase.value if hasattr(project.phase, 'value') else project.phase).strip().lower().replace(" ", "_")
+        phase_done = (phase_str == "completed")
+
+        # 3. Both subtasks complete AND Phase complete are required for COMPLETED (100%)
+        if subtasks_done and phase_done:
+            if project.status != ProjectStatus.COMPLETED:
+                project.status = ProjectStatus.COMPLETED
+                db.commit()
+                db.refresh(project)
+        else:
+            # If either subtasks are NOT done, OR Phase is NOT completed:
+            # The project cannot be COMPLETED - must remain or revert to ACTIVE!
+            if project.status == ProjectStatus.COMPLETED or str(project.status).upper() == "COMPLETED":
+                project.status = ProjectStatus.ACTIVE
+                if phase_done and not subtasks_done:
+                    # Subtasks are still pending, so phase cannot remain Completed
+                    project.phase = ProjectPhase.IN_PROGRESS
+                db.commit()
+                db.refresh(project)

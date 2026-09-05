@@ -34,7 +34,7 @@ export class ChatService {
     const token = localStorage.getItem('access_token');
     if (!token) return;
 
-    const wsUrl = `ws://localhost:8000/api/v1/ws/chat?token=${token}`;
+    const wsUrl = this.getWsUrl(token);
     
     this.socket = new WebSocket(wsUrl);
 
@@ -85,5 +85,13 @@ export class ChatService {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify({ message_text: text }));
     }
+  }
+
+  private getWsUrl(token: string): string {
+    if (typeof window === 'undefined') {
+      return `ws://localhost:8000/api/v1/ws/chat?token=${token}`;
+    }
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/api/v1/ws/chat?token=${token}`;
   }
 }

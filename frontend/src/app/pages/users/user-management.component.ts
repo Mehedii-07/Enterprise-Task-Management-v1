@@ -130,6 +130,16 @@ import { User } from '../../core/models/user.model';
       h3 { font-size: 1.3rem; margin-bottom: 20px; }
       .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
     }
+
+    @media (max-width: 640px) {
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+
+        button { width: 100%; justify-content: center; }
+      }
+    }
   `]
 })
 export class UserManagementComponent implements OnInit {

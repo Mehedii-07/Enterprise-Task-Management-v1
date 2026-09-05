@@ -91,6 +91,75 @@ import { Project } from '../../core/models/project.model';
               <div class="progress-bar-fill" [style.width.%]="project.progress_percentage || 0"></div>
             </div>
           </div>
+
+          <!-- Milestones Checklist Section -->
+          <div class="milestones-section">
+            <div class="milestones-header">
+              <div class="milestones-title">
+                <span class="material-symbols-outlined icon">checklist</span>
+                <span>Milestones Checklist</span>
+                <span class="milestones-badge">
+                  {{ getCompletedMilestonesCount(project) }}/{{ (project.milestones || []).length }}
+                </span>
+              </div>
+              <button *ngIf="auth.hasRole(['CEO', 'ADMIN', 'TEAM_LEAD'])" 
+                      type="button"
+                      class="btn-add-milestone" 
+                      (click)="toggleAddMilestone(project)" 
+                      title="Add Project Milestone">
+                <span class="material-symbols-outlined">{{ addingMilestoneFor === project.id ? 'close' : 'add' }}</span>
+                <span>{{ addingMilestoneFor === project.id ? 'Cancel' : 'Add' }}</span>
+              </button>
+            </div>
+
+            <!-- Inline Add Milestone Form -->
+            <div class="add-milestone-form" *ngIf="addingMilestoneFor === project.id">
+              <div class="form-inputs">
+                <input type="text" 
+                       [(ngModel)]="newMilestoneTitle" 
+                       placeholder="Milestone title (e.g. Design Approved)..." 
+                       class="milestone-title-input"
+                       (keyup.enter)="saveNewMilestone(project)" />
+                <input type="date" 
+                       [(ngModel)]="newMilestoneDueDate" 
+                       class="milestone-date-input" 
+                       title="Due Date" />
+              </div>
+              <button type="button" 
+                      class="btn btn-primary btn-sm" 
+                      (click)="saveNewMilestone(project)" 
+                      [disabled]="!newMilestoneTitle.trim()">
+                Save
+              </button>
+            </div>
+
+            <!-- Milestones List -->
+            <div class="milestones-list" *ngIf="project.milestones && project.milestones.length > 0">
+              <div class="milestone-item" *ngFor="let m of project.milestones" [class.completed]="m.is_completed">
+                <label class="milestone-check-label">
+                  <input type="checkbox" 
+                         [checked]="m.is_completed" 
+                         (change)="toggleProjectMilestone(project, m, $event)" />
+                  <span class="milestone-text" [class.strikethrough]="m.is_completed">{{ m.title }}</span>
+                </label>
+                <div class="milestone-actions">
+                  <span class="milestone-due" *ngIf="m.due_date">{{ m.due_date | date:'MMM d' }}</span>
+                  <button *ngIf="auth.hasRole(['CEO', 'ADMIN', 'TEAM_LEAD'])" 
+                          type="button"
+                          class="btn-del-milestone" 
+                          (click)="deleteMilestone(project, m)" 
+                          title="Delete Milestone">
+                    <span class="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="no-milestones" *ngIf="!project.milestones || project.milestones.length === 0">
+              <span class="material-symbols-outlined">flag</span>
+              <span>No milestones yet. Click "+ Add" to create one.</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -303,6 +372,193 @@ import { Project } from '../../core/models/project.model';
         .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); border-radius: 4px; transition: width 0.3s ease; }
         .pct { color: var(--text-primary); }
       }
+
+      /* Milestones Checklist Styles */
+      .milestones-section {
+        margin-top: 6px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .milestones-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          .milestones-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+
+            .icon { font-size: 16px; color: var(--accent-primary); }
+            .milestones-badge {
+              font-size: 0.7rem;
+              padding: 1px 6px;
+              border-radius: 10px;
+              background: rgba(14, 165, 233, 0.15);
+              color: var(--accent-primary);
+            }
+          }
+
+          .btn-add-milestone {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            background: transparent;
+            border: 1px dashed var(--accent-primary);
+            color: var(--accent-primary);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &:hover { background: rgba(14, 165, 233, 0.15); }
+            .material-symbols-outlined { font-size: 14px; }
+          }
+        }
+
+        .add-milestone-form {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          padding: 8px;
+          border-radius: 8px;
+
+          .form-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+
+            .milestone-title-input {
+              width: 100%;
+              padding: 6px 10px;
+              font-size: 0.8rem;
+              background: var(--bg-main);
+              border: 1px solid var(--border-color);
+              border-radius: 6px;
+              color: var(--text-primary);
+              &:focus { outline: none; border-color: var(--accent-primary); }
+            }
+
+            .milestone-date-input {
+              width: 100%;
+              padding: 4px 8px;
+              font-size: 0.75rem;
+              background: var(--bg-main);
+              border: 1px solid var(--border-color);
+              border-radius: 6px;
+              color: var(--text-secondary);
+            }
+          }
+        }
+
+        .milestones-list {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          max-height: 160px;
+          overflow-y: auto;
+          padding-right: 2px;
+
+          .milestone-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            transition: background 0.2s;
+
+            &.completed {
+              background: rgba(16, 185, 129, 0.05);
+              border-color: rgba(16, 185, 129, 0.2);
+            }
+
+            .milestone-check-label {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex: 1;
+              cursor: pointer;
+
+              input[type="checkbox"] {
+                cursor: pointer;
+                accent-color: var(--accent-success);
+                width: 15px;
+                height: 15px;
+              }
+
+              .milestone-text {
+                font-size: 0.82rem;
+                color: var(--text-primary);
+                transition: all 0.2s;
+
+                &.strikethrough {
+                  text-decoration: line-through;
+                  color: var(--text-muted);
+                }
+              }
+            }
+
+            .milestone-actions {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+
+              .milestone-due {
+                font-size: 0.7rem;
+                color: var(--text-muted);
+                background: rgba(255, 255, 255, 0.05);
+                padding: 1px 6px;
+                border-radius: 4px;
+              }
+
+              .btn-del-milestone {
+                background: transparent;
+                border: none;
+                color: var(--text-muted);
+                cursor: pointer;
+                padding: 2px;
+                display: flex;
+                align-items: center;
+                border-radius: 4px;
+
+                &:hover { color: #EF4444; background: rgba(239, 68, 68, 0.1); }
+                .material-symbols-outlined { font-size: 15px; }
+              }
+            }
+          }
+        }
+
+        .no-milestones {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--text-muted);
+          font-size: 0.75rem;
+          font-style: italic;
+          padding: 6px 0;
+          .material-symbols-outlined { font-size: 15px; }
+        }
+      }
+    }
+
+    @media (max-width: 640px) {
+      .projects-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
@@ -371,6 +627,77 @@ export class ProjectListComponent implements OnInit {
     assign_date: '', delivery_time: ''
   };
   editingProject: any = {};
+  addingMilestoneFor: string | null = null;
+  newMilestoneTitle = '';
+  newMilestoneDueDate = '';
+
+  getCompletedMilestonesCount(project: any): number {
+    return (project.milestones || []).filter((m: any) => m.is_completed).length;
+  }
+
+  toggleAddMilestone(project: any) {
+    this.addingMilestoneFor = this.addingMilestoneFor === project.id ? null : project.id;
+    this.newMilestoneTitle = '';
+    this.newMilestoneDueDate = '';
+  }
+
+  saveNewMilestone(project: any) {
+    if (!this.newMilestoneTitle.trim()) return;
+    const payload = {
+      title: this.newMilestoneTitle.trim(),
+      due_date: this.newMilestoneDueDate ? new Date(this.newMilestoneDueDate).toISOString() : null,
+      is_completed: false
+    };
+    this.api.post<any>(`/projects/${project.id}/milestones`, payload).subscribe({
+      next: (created) => {
+        if (!project.milestones) project.milestones = [];
+        project.milestones.push(created);
+        this.recalculateProjectProgress(project);
+        this.addingMilestoneFor = null;
+        this.newMilestoneTitle = '';
+        this.newMilestoneDueDate = '';
+      },
+      error: (err) => alert('Failed to create milestone: ' + (err.error?.detail || err.message))
+    });
+  }
+
+  toggleProjectMilestone(project: any, milestone: any, event: any) {
+    const isCompleted = event.target.checked;
+    milestone.is_completed = isCompleted;
+    this.recalculateProjectProgress(project);
+
+    this.api.patch(`/projects/${project.id}/milestones/${milestone.id}`, {
+      is_completed: isCompleted
+    }).subscribe({
+      next: (res: any) => {
+        milestone.is_completed = res.is_completed;
+        this.recalculateProjectProgress(project);
+      },
+      error: () => {
+        milestone.is_completed = !isCompleted;
+        this.recalculateProjectProgress(project);
+      }
+    });
+  }
+
+  deleteMilestone(project: any, milestone: any) {
+    if (!confirm(`Delete milestone "${milestone.title}"?`)) return;
+    this.api.delete(`/projects/${project.id}/milestones/${milestone.id}`).subscribe({
+      next: () => {
+        project.milestones = project.milestones.filter((m: any) => m.id !== milestone.id);
+        this.recalculateProjectProgress(project);
+      },
+      error: (err) => alert('Failed to delete milestone: ' + (err.error?.detail || err.message))
+    });
+  }
+
+  private recalculateProjectProgress(project: any) {
+    const totalM = (project.milestones || []).length;
+    const doneM = (project.milestones || []).filter((m: any) => m.is_completed).length;
+    if (totalM > 0) {
+      project.progress_percentage = Math.round((doneM / totalM) * 100);
+    }
+  }
 
   ngOnInit() {
     this.loadProjects();
