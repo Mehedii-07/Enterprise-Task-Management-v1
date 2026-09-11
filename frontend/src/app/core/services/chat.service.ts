@@ -12,6 +12,7 @@ export interface ChatMessage {
     id: string;
     first_name: string;
     last_name: string;
+    avatar_url?: string;
   };
 }
 
@@ -31,7 +32,7 @@ export class ChatService {
   connect() {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
-    const token = localStorage.getItem('access_token');
+    const token = typeof window !== 'undefined' ? (sessionStorage.getItem('access_token') || localStorage.getItem('access_token')) : null;
     if (!token) return;
 
     const wsUrl = this.getWsUrl(token);

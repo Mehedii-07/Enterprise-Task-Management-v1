@@ -477,8 +477,8 @@ export class TaskBoardComponent implements OnInit {
 
   canEditTask(task: Task): boolean {
     if (this.auth.hasRole(['CEO'])) return true;
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    return currentUser.id === task.assignee?.id;
+    const currentUser = this.auth.currentUser();
+    return currentUser?.id === task.assignee?.id;
   }
 
   createTask() {

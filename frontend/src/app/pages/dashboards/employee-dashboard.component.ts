@@ -197,25 +197,6 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
           </div>
         </div>
       </div>
-
-      <!-- Team Contribution Section -->
-      <div class="team-contribution glass-card" *ngIf="stats()?.team_contribution">
-        <h3>Team Contribution & Organization Progress</h3>
-        <div class="contrib-grid">
-          <div class="contrib-item">
-            <span class="c-label">Total Organization Tasks</span>
-            <span class="c-val">{{ stats().team_contribution.total_team_tasks }}</span>
-          </div>
-          <div class="contrib-item">
-            <span class="c-label">Organization Completed Tasks</span>
-            <span class="c-val">{{ stats().team_contribution.completed_team_tasks }}</span>
-          </div>
-          <div class="contrib-item">
-            <span class="c-label">Overall Organization Progress</span>
-            <span class="c-val text-primary">{{ stats().team_contribution.team_progress_percentage }}%</span>
-          </div>
-        </div>
-      </div>
     </div>
   `,
   styles: [`
@@ -236,11 +217,17 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
     }
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 16px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
       .metric-card {
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 18px 20px;
         .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .value { font-size: 1.6rem; font-weight: 800; color: var(--accent-primary); display: block; margin-top: 4px; }
+        .value { font-size: 1.5rem; font-weight: 800; color: var(--accent-primary); display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .text-success { color: var(--accent-success); }
         .text-primary { color: var(--accent-primary); }
       }
@@ -286,25 +273,6 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
       }
       .btn-sm { padding: 4px 10px; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; }
       .text-primary { color: var(--accent-primary); }
-    }
-    .team-contribution {
-      h3 { font-size: 1.1rem; margin-bottom: 16px; }
-      .contrib-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-        .contrib-item {
-          padding: 16px;
-          border-radius: 12px;
-          background: var(--bg-main);
-          border: 1px solid var(--border-color);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          .c-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-          .c-val { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); display: block; }
-        }
-      }
     }
 
     .milestones-checklist {

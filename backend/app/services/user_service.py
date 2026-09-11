@@ -42,6 +42,8 @@ class UserService:
         role = db.query(Role).filter(Role.id == user_data.role_id).first()
         if not role:
             role = db.query(Role).filter(Role.name == user_data.role_id.upper()).first()
+        if not role and user_data.role_id.upper() in ["TEAM_LEAD", "TEAM LEAD", "LEAD"]:
+            role = db.query(Role).filter(Role.name == RoleType.PROJECT_LEAD.value).first()
         if not role:
             raise EntityNotFoundException("Role", user_data.role_id)
             
@@ -99,6 +101,10 @@ class UserService:
             user.is_active = user_data.is_active
         if user_data.role_id is not None:
             role = db.query(Role).filter(Role.id == user_data.role_id).first()
+            if not role:
+                role = db.query(Role).filter(Role.name == user_data.role_id.upper()).first()
+            if not role and user_data.role_id.upper() in ["TEAM_LEAD", "TEAM LEAD", "LEAD"]:
+                role = db.query(Role).filter(Role.name == RoleType.PROJECT_LEAD.value).first()
             if role:
                 user.role_id = role.id
 

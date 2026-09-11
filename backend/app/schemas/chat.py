@@ -6,6 +6,7 @@ class UserChatInfo(BaseModel):
     id: str
     first_name: str
     last_name: str
+    avatar_url: Optional[str] = None
 
 class ChatMessageBase(BaseModel):
     message_text: str

@@ -133,11 +133,17 @@ import { WebsocketService, WsMessage } from '../../core/services/websocket.servi
     }
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 16px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
       .metric-card {
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 18px 20px;
         .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .value { font-size: 1.6rem; font-weight: 800; color: var(--accent-primary); display: block; margin-top: 4px; }
+        .value { font-size: 1.5rem; font-weight: 800; color: var(--accent-primary); display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       }
     }
     .projects-section {

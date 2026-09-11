@@ -11,9 +11,26 @@ export class AuthService {
   private api = inject(ApiService);
   private router = inject(Router);
 
+  private getStoredToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    const sessionToken = sessionStorage.getItem('access_token');
+    if (sessionToken) return sessionToken;
+    // Migrate legacy localStorage token if present
+    const localToken = localStorage.getItem('access_token');
+    if (localToken) {
+      sessionStorage.setItem('access_token', localToken);
+      const refresh = localStorage.getItem('refresh_token');
+      if (refresh) sessionStorage.setItem('refresh_token', refresh);
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      return localToken;
+    }
+    return null;
+  }
+
   // Angular Signals for Reactive Auth State
   currentUser = signal<User | null>(null);
-  token = signal<string | null>(localStorage.getItem('access_token'));
+  token = signal<string | null>(this.getStoredToken());
   
   isAuthenticated = computed(() => !!this.token() && !!this.currentUser());
   userRole = computed(() => this.currentUser()?.role?.name?.toUpperCase() || 'EMPLOYEE');
@@ -29,8 +46,11 @@ export class AuthService {
   login(credentials: { email: string; password: string }): Observable<User> {
     return this.api.post<LoginResponse>('/auth/login', credentials).pipe(
       tap(res => {
-        localStorage.setItem('access_token', res.access_token);
-        localStorage.setItem('refresh_token', res.refresh_token);
+        sessionStorage.setItem('access_token', res.access_token);
+        sessionStorage.setItem('refresh_token', res.refresh_token);
+        // Clear any old shared localStorage tokens so tabs never interfere
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         this.token.set(res.access_token);
       }),
       switchMap(() => this.fetchProfile())
@@ -55,10 +75,12 @@ export class AuthService {
   }
 
   logout() {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = sessionStorage.getItem('refresh_token') || localStorage.getItem('refresh_token');
     if (refreshToken) {
       this.api.post('/auth/logout', { refresh_token: refreshToken }).subscribe();
     }
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     this.token.set(null);

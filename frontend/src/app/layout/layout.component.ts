@@ -44,6 +44,7 @@ import { ChatService } from '../core/services/chat.service';
       width: 100%;
       max-width: 100vw;
       overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     .main-wrapper {
@@ -52,6 +53,9 @@ import { ChatService } from '../core/services/chat.service';
       flex-direction: column;
       min-width: 0;
       width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     .page-content {
@@ -59,6 +63,8 @@ import { ChatService } from '../core/services/chat.service';
       padding: 32px;
       flex: 1;
       min-width: 0;
+      max-width: calc(100% - 260px);
+      box-sizing: border-box;
       transition: margin-left 0.3s ease, padding 0.3s ease;
     }
 
@@ -70,6 +76,8 @@ import { ChatService } from '../core/services/chat.service';
       background: rgba(13, 19, 34, 0.4);
       color: var(--text-muted);
       font-size: 0.85rem;
+      max-width: calc(100% - 260px);
+      box-sizing: border-box;
       transition: margin-left 0.3s ease;
     }
 
@@ -85,21 +93,25 @@ import { ChatService } from '../core/services/chat.service';
     @media (max-width: 1024px) {
       .page-content {
         margin-left: 80px;
+        max-width: calc(100% - 80px);
         padding: 20px 16px;
       }
       .app-footer {
         margin-left: 80px;
+        max-width: calc(100% - 80px);
       }
     }
 
     @media (max-width: 768px) {
       .page-content {
         margin-left: 0;
+        max-width: 100%;
         padding: 16px 12px;
         width: 100%;
       }
       .app-footer {
         margin-left: 0;
+        max-width: 100%;
         padding: 16px 12px;
         font-size: 0.75rem;
       }
